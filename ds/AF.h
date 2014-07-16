@@ -131,10 +131,9 @@ private:
   TString fPrivateProduction; // dataset(s) basename for private productions
   Bool_t fSimpleRunNumbers; // true if run number are not with format %09d but %d instead
   TString fFilterName; // filter name (default:"")
+  TString fMaster; // hostname of the master
   
-//  const char* connect = "laphecet@nansafmaster.in2p3.fr/?N",
-  
-  ClassDef(AF,4)
+  ClassDef(AF,5)
 };
 
 #endif

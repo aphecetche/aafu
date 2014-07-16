@@ -54,7 +54,7 @@ void MakeRawCollection(const char* runlist, const char* collectionName, const ch
 }
 
 //______________________________________________________________________________
-AF::AF(const char* af) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE), fSimpleRunNumbers(kFALSE), fFilterName("")
+AF::AF(const char* af) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE), fSimpleRunNumbers(kFALSE), fFilterName(""), fMaster("")
 {
   TString envFile(gSystem->ExpandPathName("$HOME/.aaf"));
   
@@ -66,14 +66,14 @@ AF::AF(const char* af) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE), fSimp
   
   TEnv env(envFile);
   
-  TString afHost = env.GetValue(af,"unknown");
+  fMaster = env.GetValue(af,"unknown");
   TString afUser = env.GetValue("user","unknown");
   
-  if ( afHost != "unknown" && afUser != "unknown" )
+  if ( fMaster != "unknown" && afUser != "unknown" )
   {
     fConnect = afUser;
     fConnect += "@";
-    fConnect += afHost;
+    fConnect += fMaster;
     fConnect += "/?N";
   }
   
@@ -1181,7 +1181,7 @@ void AF::RemoveDataFromOneDataSet(const char* dsName, std::ofstream& out)
   {
     TUrl url(*(fi->GetFirstUrl()));
     
-    if  (TString(url.GetHost()).Contains("nansafmaster")) continue; // means not staged, so nothing to remove...
+    if  (TString(url.GetHost()).Contains(fMaster.Data())) continue; // means not staged, so nothing to remove...
     
     out << Form("echo \"xrd %s rm %s\"",url.GetHost(),url.GetFile()) << std::endl;
     
@@ -1262,7 +1262,7 @@ void AF::ShowDataSetList(const char* path)
 void AF::AnalyzeFileList(const char* filelist, const char* deletePath)
 {
   // analyse filelist created with :
-  // TProof::Open("nansafmaster.in2p3.fr/?N","workers=1x");
+  // TProof::Open("masterhostname?N","workers=1x");
   // gProof->Exec(".!hostname ; ls -alS /pool/data/01/xrddata/"); > filelist.txt
 
   ofstream* out(0x0);
