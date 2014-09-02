@@ -1,0 +1,6 @@
+*.xcodeproj
+
+*.d
+*.o
+*.so
+*.dSYM
