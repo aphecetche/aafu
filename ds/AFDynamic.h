@@ -12,7 +12,7 @@
 class AFDynamic : public VAF
 {
 public:
-  AFDynamic(const char* user, const char* master);
+  AFDynamic(const char* master);
   
 public:
   
@@ -23,8 +23,8 @@ public:
                       const char* basename="/alice/data/2010/LHC10h",
                       Int_t fileLimit=-1);
 
-  virtual void GetDataSetList(TList& list);
-
+  virtual void ShowDataSetList(const char* query);
+  
 private:
 
   Bool_t DecodeSearchId(const char* searchId,

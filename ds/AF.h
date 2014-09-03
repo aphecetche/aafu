@@ -85,6 +85,8 @@ public:
 
   void ShowConfig() { fImpl->ShowConfig(); }
   
+  void ShowDataSetContent(const char* ds) { fImpl->ShowDataSetContent(ds); }
+  
   ClassDef(AF,7)
 };
 

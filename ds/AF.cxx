@@ -23,23 +23,22 @@ AF::AF(const char* af) : fImpl(0x0)
   env.ReadFile(envFile,kEnvAll);
   
   TString afMaster = env.GetValue(Form("%s.master",af),"unknown");
-  TString afUser = env.GetValue(Form("%s.user",af),"unknown");
   Bool_t afDynamic = env.GetValue(Form("%s.dynamic",af),kFALSE);
 
-  if ( afMaster != "unknown" && afUser != "unknown" )
+  if ( afMaster != "unknown" )
   {
     if ( afDynamic )
     {
-      fImpl = new AFDynamic(afUser,afMaster);
+      fImpl = new AFDynamic(afMaster);
     }
     else
     {
-      fImpl = new AFStatic(afUser,afMaster);
+      fImpl = new AFStatic(afMaster);
     }
   }
   else
   {
-    std::cerr << "Could not get user/master/dynamic information for AF named " << af << std::endl;
+    std::cerr << "Could not get master information for AF named " << af << std::endl;
   }
   
   if ( fImpl )

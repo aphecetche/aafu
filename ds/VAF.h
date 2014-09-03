@@ -6,6 +6,7 @@
 #include "TString.h"
 class TList;
 class TFileCollection;
+class TMap;
 
 ///
 /// Interface for class dealing with analysis facility datasets
@@ -15,7 +16,7 @@ class VAF : public TObject
 {
 public:
   
-  VAF(const char* user, const char* master);
+  VAF(const char* master);
   
   void DryRun(Bool_t flag) { fDryRun = flag; }
   
@@ -42,6 +43,8 @@ public:
   TString LogDir() const { return fLogDir; }
   
   TString DataDisk() const { return fDataDisk; }
+  
+  void GetFileMap(TMap& files);
   
   virtual void CreateDataSets(const std::vector<int>& runs,
                               const char* dataType = "aodmuon",
@@ -94,7 +97,7 @@ public:
 
   void AnalyzeFileList(const char* filelist, const char* deletePath="");
 
-  virtual void GetDataSetList(TList& list) = 0;
+  virtual void GetDataSetList(TList& list, const char* path="/*/*/*");
   
   void SetAnalyzeDeleteScriptName(const char* filename) { fAnalyzeDeleteScriptName = filename; }
   
@@ -131,7 +134,7 @@ protected:
   void ReadIntegers(const char* filename, std::vector<int>& integers);
   
 private:
-  TString fConnect; // Connect string (username@afmaster)
+  TString fConnect; // Connect string (afmaster)
   Bool_t fDryRun; // whether to do real things or just show what would be done
   Bool_t fMergedOnly; // pick only the merged AODs when merging is in the same directory as non-merged...
   TString fPrivateProduction; // dataset(s) basename for private productions

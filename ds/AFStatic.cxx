@@ -55,7 +55,7 @@ void MakeRawCollection(const char* runlist, const char* collectionName, const ch
 }
 
 //______________________________________________________________________________
-AFStatic::AFStatic(const char* user, const char* master) : VAF(user,master)
+AFStatic::AFStatic(const char* master) : VAF(master)
 {
 }
 
@@ -505,31 +505,5 @@ void AFStatic::CreateDataSets(const std::vector<int>& runs,
   cout << "----- TOTAL " << endl;
   
   cout << Form("nruns=%d nfiles = %d | size = %7.2f GB",(Int_t)runs.size(),nfiles,size/byte2GB) << endl;
-}
-
-//______________________________________________________________________________
-void AFStatic::GetDataSetList(TList& list, const char* path)
-{
-  list.SetOwner(kTRUE);
-  list.Clear();
-  
-  if ( Connect() )
-  {
-    TMap* datasets = gProof->GetDataSets(path, ":lite:");
-    
-    if (!datasets)
-    {
-      return;
-    }
-    
-    datasets->SetOwnerKeyValue();  // important to avoid leaks!
-    TIter dsIterator(datasets);
-    TObjString* dsName;
-    
-    while ((dsName = static_cast<TObjString *>(dsIterator.Next())))
-    {
-      list.Add(new TObjString(*dsName));
-    }
-  }
 }
 

@@ -22,14 +22,30 @@
 #include "TMacro.h"
 #include "TDatime.h"
 #include <cassert>
+#include "TDataSetManagerAliEn.h"
 
 namespace
 {
   Double_t byte2GB(1024*1024*1024);
+
+  
+  class toto : public TDataSetManagerAliEn
+  {
+   
+  public:
+    
+    static Bool_t Parse(TString &uri,
+                        TString &basePath, TString &fileName, TString &anchor, TString &query,
+                        TString &treeName, TString &regexp)
+    { std::cout << uri << std::endl;
+      return ParseCustomFindUri(uri,basePath,fileName,anchor,query,treeName,regexp);
+    }
+  };
+
 }
 
 //______________________________________________________________________________
-AFDynamic::AFDynamic(const char* user, const char* master) : VAF(user,master)
+AFDynamic::AFDynamic(const char* master) : VAF(master)
 {
 }
 
@@ -113,7 +129,14 @@ void AFDynamic::CreateDataSets(const std::vector<int>& runs,
 
   total.Merge(&list);
 
-  total.Print();
+  if ( DryRun() )
+  {
+    total.Print("f");
+  }
+  else
+  {
+    total.Print();
+  }
   
   Int_t nfiles = total.GetNFiles();
   Long64_t size = total.GetTotalSize();
@@ -226,87 +249,24 @@ AFDynamic::SearchId(const char* basepath, const char* filename, const char* anch
 }
 
 //______________________________________________________________________________
-void AFDynamic::GetDataSetList(TList& list)
+void AFDynamic::ShowDataSetList(const char* query)
 {
-  /// Get (an approximate) list of datasets. Due to the way dynamic datasets are handled,
-  /// we have no guarantee the list returned is the full one (i.e. if some adming
-  /// wiped out the dataset.list file, we're screwed), but that should be good enough
-  /// for most purposes...
-  
-  TString datasetList(HomeDir());
-  
-  datasetList += "/stagereqrepo/dataset.list"; // FIXME : the stagereqrepo should be found in the xrootd config...
-  
-  if ( !Connect()) return;
+   if (Connect())
+   {
+     
+     TString basePath;
+     TString fileName;
+     TString anchor;
+     TString query;
+     TString treeName;
+     TString regexp;
 
-  TString cmd(".! cat ");
-  
-  cmd += datasetList;
-  
-  gProof->Exec(cmd.Data(),"0",kTRUE);
-  
-  TMacro* macro = gProof->GetMacroLog();
-  
-  TList* macroLines = macro->GetListOfLines();
-  
-  assert(macroLines->GetSize()==1);
- 
-  TString singleLine = static_cast<TObjString*>(macroLines->First())->String();
-  TObjArray* lines = singleLine.Tokenize("\n");
-  TIter next(lines);
-  TObjString* s;
-  
-  while ( ( ( s = static_cast<TObjString*>(next())) ) )
-  {
-    TObjArray* parts = s->String().Tokenize(" ");
-    TDatime d(static_cast<TObjString*>(parts->At(0))->String().Atoi());
-    TString path(static_cast<TObjString*>(parts->At(1))->String());
-    
-//    TString hash(static_cast<TObjString*>(parts->At(2))->String());
-    
-    TString basepath;
-    TString filename;
-    TString anchor;
-    Bool_t isarchive(kFALSE);
-    TString treename;
-    TString regexp;
-    
-    path = gSystem->BaseName(path.Data());
-    
-    path.ReplaceAll("____","_");
-    path.ReplaceAll("___","_");
-    path.ReplaceAll("__","_");
-    
-    Bool_t decodeIsOK = DecodeSearchId(path.Data(),
-                                       basepath, filename, anchor,
-                                       isarchive, treename, regexp);
-
-
-    basepath.ReplaceAll("_","/");
-//    basepath.ReplaceAll("muon/pass2","muon_pass2");
-    
-//    if ( basepath[0] != '/' )
-//    {
-//      TString tmp(basepath);
-//      basepath = "/";
-//      basepath += tmp;
-//    }
-
-    TString hash = SearchId(basepath.Data(),filename.Data(),anchor.Data(),
-                            isarchive,treename.Data(),regexp.Data());
-    
-    std::cout << path.Data()
-    << std::endl
-     << " + ok=" << decodeIsOK << " + basepath=" << basepath.Data() << " + filename=" << filename.Data() <<
-    " + tree=" << treename << " + anchor=" << anchor
-    << std::endl
-    << " recomposed hash = " << hash.Data() << std::endl;
-    
-    gProof->Exec(Form(".!ls %s/datasetcache/_cache_/_cache_/*%s*",HomeDir().Data(),hash.Data()));
-    
-    delete parts;
-  }
-  
-  delete lines;
+     Bool_t ok = toto::Parse(query,basePath,fileName,anchor,query,treeName,regexp);
+     
+     std::cout << ok << " " << basePath << std::endl;
+     
+     
+     gProof->ShowDataSet(query);
+   }
 }
 

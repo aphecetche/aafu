@@ -15,7 +15,7 @@ void MakeRawCollection(const char* runlist="runList.txt",
 class AFStatic : public VAF
 {
 public:
-  AFStatic(const char* user, const char* master);
+  AFStatic(const char* master);
   
 public:
   
@@ -25,15 +25,7 @@ public:
                       int aodPassNumber=49,
                       const char* basename="/alice/data/2010/LHC10h",
                       Int_t fileLimit=-1);
-
-private:
   
-  void GetDataSetList(TList& list, const char* path);
-  
-public:
-  virtual void GetDataSetList(TList& list)
-  { return GetDataSetList(list,"/*/*/*"); }
-
 private:
 
   TFileCollection* CreateCollectionFromRunList(const char* collectionType,

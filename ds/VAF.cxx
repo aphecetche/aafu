@@ -21,6 +21,8 @@
 #include "TCollection.h"
 #include "TObjString.h"
 #include "TObjArray.h"
+#include "TProof.h"
+#include "TMap.h"
 
 namespace
 {
@@ -28,15 +30,13 @@ namespace
 }
 
 //______________________________________________________________________________
-VAF::VAF(const char* user, const char* master) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE),
+VAF::VAF(const char* master) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE),
 fSimpleRunNumbers(kFALSE), fFilterName(""), fMaster(master), fAnalyzeDeleteScriptName("analyze-delete.sh"),
 fHomeDir(""),fLogDir(""), fDataDisk("")
 {
-  if ( TString(user) != "unknown" && TString(master) != "unknown" )
+  if ( TString(master) != "unknown" )
   {
-    fConnect = user;
-    fConnect += "@";
-    fConnect += master;
+    fConnect = master;
     fConnect += "/?N";
   }
   
@@ -1116,3 +1116,82 @@ void VAF::ShowConfig()
      gProof->Exec(Form(".!echo '********************* prf-main.cf *************';cat %s/proof/xproofd/prf-main.cf;echo '***************** xrootd.cf ********************';cat %s/xrootd/etc/xrootd/xrootd.cf;echo '***************** afdsmgrd.conf  ********************'; cat %s/proof/xproofd/afdsmgrd.conf",HomeDir().Data(),HomeDir().Data(),HomeDir().Data()));
    }
 }
+
+//______________________________________________________________________________
+void VAF::GetDataSetList(TList& list, const char* path)
+{
+  list.SetOwner(kTRUE);
+  list.Clear();
+  
+  if ( Connect() )
+  {
+    TMap* datasets = gProof->GetDataSets(path, ":lite:");
+    
+    if (!datasets)
+    {
+      return;
+    }
+    
+    datasets->SetOwnerKeyValue();  // important to avoid leaks!
+    TIter dsIterator(datasets);
+    TObjString* dsName;
+    
+    while ((dsName = static_cast<TObjString *>(dsIterator.Next())))
+    {
+      list.Add(new TObjString(*dsName));
+    }
+  }
+}
+
+//______________________________________________________________________________
+void VAF::GetFileMap(TMap& files)
+{
+  // Retrieve the complete list of files on this AF.
+  // The map is indexed by hostname. For each hostname there a list
+  // of TObjString containing the result of 'ls -l'
+  
+  if (Connect("workers=1x"))
+  {
+    TUrl u(gProof->GetDataPoolUrl());
+    
+    TList* list = gProof->GetListOfSlaveInfos();
+    Int_t nworkers = list->GetSize();
+    
+    for ( Int_t i = 0; i < nworkers; ++i )
+    {
+      TSlaveInfo* slave = static_cast<TSlaveInfo*>(list->At(i));
+      
+      TList* fileList = new TList;
+      fileList->SetOwner(kTRUE);
+      
+      files.Add(new TObjString(slave->fHostName),fileList);
+      
+      gProof->Exec(Form(".! find %s/alice -type f -exec ls -l {} \\;",u.GetFile()),slave->GetOrdinal(),kTRUE);
+      
+      TMacro* macro = gProof->GetMacroLog();
+      
+      TIter next(macro->GetListOfLines());
+      TObjString* s;
+      TString fullLine;
+      
+      while ( ( s = static_cast<TObjString*>(next())) )
+      {
+        fullLine += s->String();
+      }
+      
+      TObjArray* l = fullLine.Tokenize("\n");
+      TObjString* s2;
+      TIter next2(l);
+      
+      while ( ( s2 = static_cast<TObjString*>(next2())) )
+      {
+        fileList->Add(new TObjString(*s2));
+      }
+      
+      delete l;
+      
+    }
+  }
+}
+
+

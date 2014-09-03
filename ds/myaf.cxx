@@ -2,20 +2,6 @@
 // utility program to query a number of things from an AF, like list of datasets, disk usage,
 // log files, conf. files, etc... as well as doing basic operations like reset for instance.
 //
-//
-// # myaf [aaf] [what] [option] [detail]
-//
-// # if [what] is ds, option is the regexp of the dataset searched for
-// # if [what] is reset, option is true or false (hard or soft reset)
-// # if [what] is showds, option is dataset name
-// # if [what] is repairds, option is datasetname
-// # if [what] is xferlog, option is the filename of the file for which the transfer log should be searched for
-// # if [what] is corrupt, option is filename to mark as corrupted and detail is the dataset name
-// # if [what] is conf, option and detail are not used and the configuration file of the AAF is shown
-
-//# example : myaf saf ds '*27*'
-//# note the '' to protect the regular expression
-//#
 
 #include <iostream>
 #include <string>
@@ -24,9 +10,19 @@
 //_________________________________________________________________________________________________
 int usage() {
  
-  std::cout << "Usage : myaf aaf what option" << std::endl;
-  std::cout << "aaf can be caf, saf, saf2, skaf" << std::endl;
-  std::cout << "what can be 'ds', 'reset','df', 'clear', 'packages', 'showds', 'repairds', 'lstxt', 'corrupt', 'xferlog', 'synclog', 'conf' or 'stagerlog'" << std::endl;
+  std::cout << "Usage : myaf aaf command [detail]" << std::endl;
+  std::cout << "- aaf is the nickname of the AAF you want to connect to (must be including in the $HOME/.aaf configuration file)" << std::endl;
+  std::cout << "- command is what you want myaf to do : " << std::endl;
+  std::cout << "-- reset [hard] : reset the AF" << std::endl;
+  std::cout << "-- ds pattern : show the list of dataset(s) matching the pattern" << std::endl;
+  std::cout << "-- showds : show the content of one dataset (or several if option is the name of a text file containing the IDs of datasets)"<< std::endl;
+  std::cout << "-- clear : clear the list of packages from the user"<< std::endl;
+  std::cout << "-- packages : show the list of available packages "<< std::endl;
+  std::cout << std::endl;
+  std::cout << "-- stagerlog : (advanced) show the logfile of the stager daemon" << std::endl;
+  std::cout << "-- df : (advanced) get the disk usage on the AF"<< std::endl;
+  std::cout << "-- xferlog filename : (advanced) get the log of a failed transfer "<< std::endl;
+  std::cout << "-- conf : (advanced) show the configuration files of the AF "<< std::endl;
   return -1;
 }
 
@@ -45,10 +41,10 @@ int main(int argc, char* argv[])
     return -2;
   }
   
-  std::string what, option, detail;
+  std::string command, option, detail;
   
   if ( argc>2 ) {
-    what = argv[2];
+    command = argv[2];
   }
 
   if ( argc>3 ) {
@@ -59,42 +55,50 @@ int main(int argc, char* argv[])
     detail = argv[4];
   }
 
-  std::cout << "af=" << aaf << " what=" << what << " option=" << option << " detail=" << detail << std::endl;
+  std::cout << "af=" << aaf << " command=" << command << " option=" << option << " detail=" << detail << std::endl;
 
-  if ( what == "stagerlog" ) {
+  if ( command == "stagerlog" ) {
     af.ShowStagerLog();
   }
 
-  if ( what == "xferlog") {
+  if ( command == "xferlog") {
     af.ShowXferLog(option.c_str());
   }
   
-  if ( what == "xrddmlog" ) {
+  if ( command == "xrddmlog" ) {
     af.ShowXrdDmLog();
   }
   
-  if ( what == "packages" ) {
+  if ( command == "packages" ) {
     af.ShowPackages();
   }
   
-  if ( what == "df" ) {
+  if ( command == "df" ) {
     af.ShowDiskUsage();
   }
   
-  if  ( what == "clear" ) {
+  if  ( command == "clear" ) {
     af.ClearPackages();
   }
   
-  if ( what == "resetroot" ) {
+  if ( command == "resetroot" ) {
     af.ResetRoot();
   }
 
-  if ( what == "reset" ) {
+  if ( command == "reset" ) {
     af.Reset(atoi(option.c_str()));
   }
 
-  if ( what == "config" ) {
+  if ( command == "config" ) {
     af.ShowConfig();
+  }
+  
+  if ( command == "ds" ) {
+    af.ShowDataSetList(option.c_str());
+  }
+  
+  if ( command == "showds" ) {
+    af.ShowDataSetContent(option.c_str());
   }
     
   return 0;
