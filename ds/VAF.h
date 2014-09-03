@@ -42,8 +42,6 @@ public:
   
   TString LogDir() const { return fLogDir; }
   
-  TString DataDisk() const { return fDataDisk; }
-  
   void GetFileMap(TMap& files);
   
   virtual void CreateDataSets(const std::vector<int>& runs,
@@ -119,8 +117,6 @@ public:
   
   void ShowConfig();
   
-  void SetDataDisk(const char* dir) { fDataDisk = dir; }
-  
 protected:
   
   Bool_t Connect(const char* option="masteronly");
@@ -145,7 +141,6 @@ private:
   Bool_t fIsDynamicDataSet; // static of dynamic datasets ?
   TString fHomeDir; // home dir of the proof-aaf installation
   TString fLogDir; // log dir of the proof-aaf installation
-  TString fDataDisk; // list of data disks
   
   ClassDef(VAF,7)
 };

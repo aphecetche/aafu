@@ -32,7 +32,7 @@ namespace
 //______________________________________________________________________________
 VAF::VAF(const char* master) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE),
 fSimpleRunNumbers(kFALSE), fFilterName(""), fMaster(master), fAnalyzeDeleteScriptName("analyze-delete.sh"),
-fHomeDir(""),fLogDir(""), fDataDisk("")
+fHomeDir(""),fLogDir("")
 {
   if ( TString(master) != "unknown" )
   {
@@ -1074,7 +1074,9 @@ void VAF::ShowDiskUsage()
 {
   if (Connect("workers=1x"))
   {
-    gProof->Exec(Form(".!hostname ; df -h %s",DataDisk().Data()));
+    TUrl u(gProof->GetDataPoolUrl());
+    
+    gProof->Exec(Form(".!hostname ; df -h %s",u.GetFile()));
   }
 }
 
