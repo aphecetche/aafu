@@ -149,6 +149,8 @@ public:
   
 protected:
   
+  TString GetStringFromExec(const char* cmd, const char* ord="*");
+
   Bool_t Connect(const char* option="masteronly");
   
   TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;

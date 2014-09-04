@@ -531,6 +531,9 @@ void VAF::GetSearchAndBaseName(Int_t runNumber, const char* basename,
     }
   }
   
+  mbasename.ReplaceAll("///","/");
+  mbasename.ReplaceAll("//","/");
+  
 //  cout << Form("basename=%s search=%s",mbasename.Data(),search.Data()) << endl;
 }
 
@@ -973,6 +976,11 @@ void VAF::GenerateHTMLTreeMap()
       truncatedPath += static_cast<TObjString*>(a->At(i))->String();
     }
 
+//    if ( truncatedPath.BeginsWith("/alice/sim") && truncatedPath.EndsWith("AOD") )
+//    {
+//      continue;
+//    }
+    
     TList* list = static_cast<TList*>(m.GetValue(truncatedPath));
     
     if (!list)
@@ -1486,55 +1494,125 @@ void VAF::GetDataSetList(TList& list, const char* path)
 }
 
 //______________________________________________________________________________
+TString VAF::GetStringFromExec(const char* cmd, const char* ord)
+{
+  // Execute a command on each Proof worker and get back the result as a (possibly giant)
+  // string
+  
+  TString rv;
+
+  if (Connect("workers=1x"))
+  {
+    gProof->Exec(cmd,ord,kTRUE);
+    
+    TMacro* macro = gProof->GetMacroLog();
+    
+    TIter next(macro->GetListOfLines());
+    TObjString* s;
+    TString fullLine;
+    
+    while ( ( s = static_cast<TObjString*>(next())) )
+    {
+      fullLine += s->String();
+    }
+    
+    TObjArray* l = fullLine.Tokenize("\n");
+    TObjString* s2;
+    TIter next2(l);
+    
+    while ( ( s2 = static_cast<TObjString*>(next2())) )
+    {
+      rv += s2->String();
+      rv += "\n";
+    }
+  }
+  
+  return rv;
+}
+
+//______________________________________________________________________________
 void VAF::GetFileMap(TMap& files)
 {
   // Retrieve the complete list of files on this AF.
   // The map is indexed by hostname. For each hostname there a list
   // of fileinfo containing the result of 'ls -l'
   
-  if (Connect("workers=1x"))
+  if (!Connect("workers=1x")) return;
+  
+
+  TUrl u(gProof->GetDataPoolUrl());
+    
+  
+  TList* list = gProof->GetListOfSlaveInfos();
+  Int_t nworkers = list->GetSize();
+    
+
+  std::set<std::string> topdirs;
+    
+  // to overcome possible limitation in the size of the log file which is used to
+  // transmit back the macrolog, we split the request per year where possible,
+  // and per "top" directory otherwise
+  
+  // the /alice/sim directory is not strictly ordered by year...
+  // so have to get a full list of the first level below it...
+  
+  TString s = GetStringFromExec(Form(".! find %s/alice/sim/2013 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  
+//  s += GetStringFromExec(Form(".! find %s/alice/data -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  
+  TObjArray* a = s.Tokenize("\n");
+  TObjString* os;
+  TIter next(a);
+  
+  while ( ( os = static_cast<TObjString*>(next())) )
   {
-    TUrl u(gProof->GetDataPoolUrl());
-    
-    TList* list = gProof->GetListOfSlaveInfos();
-    Int_t nworkers = list->GetSize();
-    
-    for ( Int_t i = 0; i < nworkers; ++i )
-    {
-      TSlaveInfo* slave = static_cast<TSlaveInfo*>(list->At(i));
-      
-      TList* fileList = new TList;
-      fileList->SetOwner(kTRUE);
-      
-      files.Add(new TObjString(slave->fHostName),fileList);
-      
-      gProof->Exec(Form(".! find %s/alice -type f -exec stat -c '%%A %%U %%G %%s %%Y %%n' {} \\;",u.GetFile()),slave->GetOrdinal(),kTRUE);
-      
-      TMacro* macro = gProof->GetMacroLog();
-      
-      TIter next(macro->GetListOfLines());
-      TObjString* s;
-      TString fullLine;
-      
-      while ( ( s = static_cast<TObjString*>(next())) )
-      {
-        fullLine += s->String();
-      }
-      
-      TObjArray* l = fullLine.Tokenize("\n");
-      TObjString* s2;
-      TIter next2(l);
-      
-      while ( ( s2 = static_cast<TObjString*>(next2())) )
-      {
-        TString tmp(s2->String());
-        
-        fileList->Add(new AFFileInfo(tmp.Data(),u.GetFile()));
-      }
-      
-      delete l;
-    }
+    topdirs.insert(os->String().Data());
   }
+  
+  delete a;
+  
+  s = "";
+  
+  for ( Int_t i = 0; i < nworkers; ++i )
+  {
+    TSlaveInfo* slave = static_cast<TSlaveInfo*>(list->At(i));
+    
+    TList* fileList = new TList;
+    fileList->SetOwner(kTRUE);
+    
+    files.Add(new TObjString(slave->fHostName),fileList);
+    
+    std::cout << "Looking for files for slave " << slave->fHostName << " " << slave->GetOrdinal() << std::endl;
+    
+    for ( std::set<std::string>::const_iterator it = topdirs.begin(); it != topdirs.end(); ++it )
+    {
+      std::cout << " in directory " << it->c_str() << std::endl;
+      s += GetStringFromExec(Form(".! find %s -exec stat -L -c '%%A %%U %%G %%s %%Y %%n' {} \\;",it->c_str()),
+                            slave->GetOrdinal());
+    }
+
+    TObjArray* b = s.Tokenize("\n");
+    TIter next2(b);
+  
+    while ( ( os = static_cast<TObjString*>(next2())) )
+    {
+      TString tmp(os->String());
+    
+      if (!tmp.BeginsWith("d")) // skip directories
+      {
+        AFFileInfo* fi = new AFFileInfo(tmp.Data(),u.GetFile());
+        if ( fi->fSize > 0 )
+        {
+          fileList->Add(fi);
+        }
+        else
+        {
+          delete fi;
+        }
+      }
+    }
+
+    delete b;
+  }
+  
 }
-
-

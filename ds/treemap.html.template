@@ -1,0 +1,41 @@
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["treemap"]});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        // Create and populate the data table.
+        var data = google.visualization.arrayToDataTable(
+        [
+		INSERTDATAHERE
+        ]);
+
+        // Create and draw the visualization.
+        var tree = new google.visualization.TreeMap(document.getElementById('chart_div'));
+        
+        var options = {
+    minColor: '#ffffb2',
+    midColor: '#fd8d3c',
+    maxColor: '#bd0026',
+    showScale: true,
+    maxDepth: 2,
+    generateTooltip: showSizeTooltip
+  };
+
+	tree.draw(data,options);
+
+      function showSizeTooltip(row,size,value) {
+           var s = size/1024/1024/1024;
+         return '<div style="background:#fd9; padding:10px; border-style:solid">' +
+            data.getValue(row, 0) + ' is ' + s.toFixed(1) + ' GB </div>';
+  }
+  
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id="chart_div" style="width: 900px; height: 500px;"></div>
+  </body>
+</html>
