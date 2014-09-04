@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
   }
 
   if ( command == "reset" ) {
-    af.Reset(atoi(option.c_str()));
+    af.Reset(option.c_str());
   }
 
   if ( command == "config" ) {

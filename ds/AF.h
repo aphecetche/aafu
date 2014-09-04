@@ -54,8 +54,8 @@ public:
                       Int_t fileLimit=-1)
   { fImpl->CreateDataSets(runNumber,dataType,esdpass,aodPassNumber,basename,fileLimit); }
 
-  void AnalyzeFileList(const char* filelist, const char* deletePath="")
-  { fImpl->AnalyzeFileList(filelist,deletePath); }
+  void AnalyzeFileList(const char* deletePath="")
+  { fImpl->AnalyzeFileList(deletePath); }
 
   void ShowDataSetList(const char* path="/*/*/*")
   {
@@ -81,12 +81,14 @@ public:
 
   void ResetRoot() { fImpl->ResetRoot(); }
   
-  void Reset(Bool_t hard) { fImpl->Reset(hard); }
+  void Reset(const char* option) { fImpl->Reset(option); }
 
   void ShowConfig() { fImpl->ShowConfig(); }
   
   void ShowDataSetContent(const char* ds) { fImpl->ShowDataSetContent(ds); }
   
+  void GetFileMap(TMap& files) { fImpl->GetFileMap(files); }
+
   ClassDef(AF,7)
 };
 

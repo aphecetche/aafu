@@ -7,6 +7,30 @@
 class TList;
 class TFileCollection;
 class TMap;
+#include "TNamed.h"
+#include "TDatime.h"
+#include "Riostream.h"
+
+class AFFileInfo : public TNamed
+{
+public:
+  AFFileInfo(const char* lsline, const char* prefix);
+  
+  friend std::ostream& operator<<(std::ostream& os, const AFFileInfo& fileinfo);
+  
+  void Print(Option_t* opt="") const { std::cout << (*this) << std::endl; }
+  
+public:
+  TString fMode;
+  TString fUser;
+  TString fGroup;
+  Long64_t fSize;
+  TDatime fTime;
+  TString fFullPath;
+  
+  ClassDef(AFFileInfo,1)
+};
+
 
 ///
 /// Interface for class dealing with analysis facility datasets
@@ -93,7 +117,7 @@ public:
   
   void UseFilter(const char* filtername) { fFilterName=filtername; }
 
-  void AnalyzeFileList(const char* filelist, const char* deletePath="");
+  void AnalyzeFileList(const char* deletePath="");
 
   virtual void GetDataSetList(TList& list, const char* path="/*/*/*");
   
@@ -113,9 +137,15 @@ public:
   
   void ResetRoot();
   
-  void Reset(Bool_t hard=kFALSE);
+  void Reset(const char* option);
   
   void ShowConfig();
+  
+  void GetFileInfoList(TList& fileInfoList);
+ 
+  void GroupFileList(TMap& groups);
+  
+  void GenerateHTMLTreeMap();
   
 protected:
   
@@ -129,6 +159,12 @@ protected:
 
   void ReadIntegers(const char* filename, std::vector<int>& integers);
   
+  Int_t DecodePath(const char* path, TString& period, TString& esdPass, TString& aodPass, Int_t& runNumber) const;
+
+  void AddFileToGroup(TMap& groups, const TString& file, const AFFileInfo& fileInfo);
+
+  ULong64_t SumSize(const TList& list) const;
+
 private:
   TString fConnect; // Connect string (afmaster)
   Bool_t fDryRun; // whether to do real things or just show what would be done
@@ -141,6 +177,7 @@ private:
   Bool_t fIsDynamicDataSet; // static of dynamic datasets ?
   TString fHomeDir; // home dir of the proof-aaf installation
   TString fLogDir; // log dir of the proof-aaf installation
+  TString fTreeMapHtmlFileName;
   
   ClassDef(VAF,7)
 };

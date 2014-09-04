@@ -25,5 +25,5 @@ myafDict.cxx: AF.h VAF.h AFStatic.h AFDynamic.h myafLinkDef.h
 	$(CXX) $(CXXFLAGS) -c $^ -o $@
 
 clean:
-	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM
+	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM treemap.html
 
