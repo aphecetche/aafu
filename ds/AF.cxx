@@ -47,6 +47,5 @@ AF::AF(const char* af) : fImpl(0x0)
     TString logDir = env.GetValue(Form("%s.log",af),"/home/PROOF-AAF");
     
     fImpl->SetHomeAndLogDir(homeDir.Data(),logDir.Data());
-    fImpl->SetDataDisk(env.GetValue(Form("%s.datadisk",af),"/data"));
   }
 }
