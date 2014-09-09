@@ -11,15 +11,15 @@ LIBS := $(shell root-config --libs) -lProof
 libmyaf.so: AF.o VAF.o AFStatic.o AFDynamic.o myaf.o myafDict.o
 	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
 
-myaf: myaf.cxx libmyaf.so
+myaf: myaf.o libmyaf.so
 	$(CXX) $(CXXFLAGS) -o myaf $^ $(LIBS)
+
+myafDict.o: myafDict.cxx myafLinkDef.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 myafDict.cxx: AF.h VAF.h AFStatic.h AFDynamic.h myafLinkDef.h
 	@echo "Generating dictionary $@.."
 	rootcint -f $@ -c $^
-
-%.o: %.cxx
-	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.o: %.cxx %.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
