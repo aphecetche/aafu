@@ -1,0 +1,19 @@
+body {
+font-family: Arial, sans-serif;
+}
+
+#listjumper {
+ display: none;
+ background: white;
+  position:absolute;
+  left: 0;
+  top: 0;
+  border: 1px solid #EEEEEE;
+  padding: 5px;
+  margin: 5px;
+  color: black;
+}
+
+#listjumper a {
+	color: black;
+}

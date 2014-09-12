@@ -8,7 +8,7 @@ CXXFLAGS := -g -Wall $(shell root-config --cflags)
 
 LIBS := $(shell root-config --libs) -lProof
 
-libmyaf.so: AF.o VAF.o AFStatic.o AFDynamic.o myaf.o myafDict.o
+libmyaf.so: VAF.o AFStatic.o AFDynamic.o myaf.o myafDict.o
 	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
 
 myaf: myaf.o libmyaf.so
@@ -17,7 +17,7 @@ myaf: myaf.o libmyaf.so
 myafDict.o: myafDict.cxx myafLinkDef.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-myafDict.cxx: AF.h VAF.h AFStatic.h AFDynamic.h myafLinkDef.h
+myafDict.cxx: VAF.h AFStatic.h AFDynamic.h myafLinkDef.h
 	@echo "Generating dictionary $@.."
 	rootcint -f $@ -c $^
 

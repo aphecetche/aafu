@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <string>
-#include "AF.h"
+#include "VAF.h"
 
 //_________________________________________________________________________________________________
 int usage() {
@@ -35,9 +35,9 @@ int main(int argc, char* argv[])
   
   std::string aaf = argv[1];
   
-  AF af(aaf.c_str());
+  VAF* af = VAF::Create(aaf.c_str());
   
-  if (!af.IsValid()) {
+  if (!af) {
     return -2;
   }
   
@@ -58,47 +58,47 @@ int main(int argc, char* argv[])
   std::cout << "af=" << aaf << " command=" << command << " option=" << option << " detail=" << detail << std::endl;
 
   if ( command == "stagerlog" ) {
-    af.ShowStagerLog();
+    af->ShowStagerLog();
   }
 
   if ( command == "xferlog") {
-    af.ShowXferLog(option.c_str());
+    af->ShowXferLog(option.c_str());
   }
   
   if ( command == "xrddmlog" ) {
-    af.ShowXrdDmLog();
+    af->ShowXrdDmLog();
   }
   
   if ( command == "packages" ) {
-    af.ShowPackages();
+    af->ShowPackages();
   }
   
   if ( command == "df" ) {
-    af.ShowDiskUsage();
+    af->ShowDiskUsage();
   }
   
   if  ( command == "clear" ) {
-    af.ClearPackages();
+    af->ClearPackages();
   }
   
   if ( command == "resetroot" ) {
-    af.ResetRoot();
+    af->ResetRoot();
   }
 
   if ( command == "reset" ) {
-    af.Reset(option.c_str());
+    af->Reset(option.c_str());
   }
 
   if ( command == "config" ) {
-    af.ShowConfig();
+    af->ShowConfig();
   }
   
   if ( command == "ds" ) {
-    af.ShowDataSetList(option.c_str());
+    af->ShowDataSetList(option.c_str());
   }
   
   if ( command == "showds" ) {
-    af.ShowDataSetContent(option.c_str());
+    af->ShowDataSetContent(option.c_str());
   }
     
   return 0;

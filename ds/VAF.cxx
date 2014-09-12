@@ -24,6 +24,11 @@
 #include "TProof.h"
 #include "TMap.h"
 #include "TDatime.h"
+#include "TFile.h"
+#include "TClass.h"
+#include "TMethodCall.h"
+#include <cassert>
+#include "TSystem.h"
 
 namespace
 {
@@ -32,29 +37,103 @@ namespace
 
 ClassImp(AFFileInfo)
 
-AFFileInfo::AFFileInfo(const char* lsline, const char* prefix) : TNamed()
+AFFileInfo::AFFileInfo(const char* lsline, const char* prefix, const char* hostname) : TNamed()
 {
   // decoding here is linked to the stat -c command in the VAF::GetFileMap method (see below)
   TObjArray* a = TString(lsline).Tokenize(" ");
-  fMode = static_cast<TObjString*>(a->At(0))->String();
-  fUser = static_cast<TObjString*>(a->At(1))->String();
-  fGroup = static_cast<TObjString*>(a->At(2))->String();
-  fSize = static_cast<TObjString*>(a->At(3))->String().Atoll();
-  fTime = TDatime(static_cast<TObjString*>(a->At(4))->String().Atoi());
-  TString tmp = static_cast<TObjString*>(a->At(5))->String();
+  fSize = static_cast<TObjString*>(a->At(0))->String().Atoll();
+  fTime = TDatime(static_cast<TObjString*>(a->At(1))->String().Atoi());
+  TString tmp = static_cast<TObjString*>(a->At(2))->String();
   fFullPath = tmp(strlen(prefix),tmp.Length()-strlen(prefix));
+  fHostName = hostname;
 }
 
 std::ostream& operator<<(std::ostream& os, const AFFileInfo& fileinfo)
 {
-  std::cout << fileinfo.fTime.AsString() << " " << fileinfo.fSize << " " << fileinfo.fFullPath;
+  os << fileinfo.fTime.AsString() << " " << fileinfo.fSize << " " << fileinfo.fFullPath << " " << fileinfo.fHostName;
   return os;
+}
+
+//__________________________________________________________________________________________________
+VAF* VAF::Create(const char* af)
+{
+  TString envFile(gSystem->ExpandPathName("$HOME/.aaf"));
+  
+  if ( gSystem->AccessPathName(envFile.Data()) )
+  {
+    std::cerr << "Cannot work without an environment file. Please make a $HOME/.aaf file !" << std::endl;
+    throw;
+  }
+  
+  TEnv env;
+  
+  env.ReadFile(envFile,kEnvAll);
+  
+  TString afMaster = env.GetValue(Form("%s.master",af),"unknown");
+  Bool_t afDynamic = env.GetValue(Form("%s.dynamic",af),kFALSE);
+  
+  VAF* vaf(0x0);
+  
+  if ( afMaster != "unknown" )
+  {
+    std::string className("AFStatic");
+    
+    if ( afDynamic )
+    {
+      className = "AFDynamic";
+    }
+    
+    TClass* c = TClass::GetClass(className.c_str());
+    
+    if (!c)
+    {
+      std::cerr << Form("Cannot get class %s",className.c_str()) << std::endl;
+      return 0x0;
+    }
+    
+    TMethodCall call;
+    
+    call.InitWithPrototype(c,className.c_str(),"char*");
+    
+    Long_t returnLong(0x0);
+    
+    Long_t params[] = { (Long_t)(&(afMaster.Data()[0])) };
+    call.SetParamPtrs((void*)(params));
+    call.Execute((void*)(0x0),returnLong);
+    
+    if (!returnLong)
+    {
+      std::cout << "Cannot create an AF of class " << className << std::endl;
+      return 0x0;
+    }
+    
+    vaf = reinterpret_cast<VAF*> (returnLong);
+  }
+  else
+  {
+    std::cerr << "Could not get master information for AF named " << af << std::endl;
+  }
+  
+  if ( vaf )
+  {
+    TString homeDir = env.GetValue(Form("%s.home",af),"/home/PROOF-AAF");
+    TString logDir = env.GetValue(Form("%s.log",af),"/home/PROOF-AAF");
+    
+    vaf->SetHomeAndLogDir(homeDir.Data(),logDir.Data());
+    
+    TString fileType = env.GetValue(Form("%s.filetype",af),"f");
+    
+    vaf->SetFileTypeToLookFor(fileType[0]);
+  }
+  
+  return vaf;
 }
 
 //______________________________________________________________________________
 VAF::VAF(const char* master) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE),
 fSimpleRunNumbers(kFALSE), fFilterName(""), fMaster(master), fAnalyzeDeleteScriptName("analyze-delete.sh"),
-fHomeDir(""),fLogDir(""), fTreeMapHtmlFileName("treemap.html")
+fHomeDir(""),fLogDir(""), fTreeMapTemplateHtmlFileName("treemap.html.template"), fFileTypeToLookFor('f'),
+fHtmlDir(Form("%s/html",gSystem->pwd()))
 {
   if ( TString(master) != "unknown" )
   {
@@ -66,7 +145,50 @@ fHomeDir(""),fLogDir(""), fTreeMapHtmlFileName("treemap.html")
 }
 
 //______________________________________________________________________________
-void VAF::AnalyzeFileList(const char* deletePath)
+TString VAF::GetFileType(const char* path) const
+{
+  TString file = gSystem->BaseName(path);
+  
+  if ( file.Contains("FILTER_RAWMUON") )
+  {
+    file = "FILTER_RAWMUON";
+  }
+
+  if ( file.BeginsWith("15000") )
+  {
+    file = "RAW 2015";
+  }
+
+  if ( file.BeginsWith("14000") )
+  {
+    file = "RAW 2014";
+  }
+
+  if ( file.BeginsWith("13000") )
+  {
+    file = "RAW 2013";
+  }
+
+  if ( file.BeginsWith("12000") )
+  {
+    file = "RAW 2012";
+  }
+  
+  if ( file.BeginsWith("11000") )
+  {
+    file = "RAW 2011";
+  }
+  
+  if ( file.BeginsWith("10000") )
+  {
+    file = "RAW 2010";
+  }
+  
+  return file;
+}
+
+//______________________________________________________________________________
+void VAF::AnalyzeFileMap(const TMap& fileMap, const char* deletePath)
 {
   ///
   /// Analyse disk space usage of an VAF
@@ -81,10 +203,6 @@ void VAF::AnalyzeFileList(const char* deletePath)
   {
     out=new ofstream(fAnalyzeDeleteScriptName.Data());
   }
-
-  TMap m;
-  m.SetOwnerKeyValue(kTRUE,kTRUE);
-  GetFileMap(m);
   
   std::string worker;
   
@@ -93,7 +211,7 @@ void VAF::AnalyzeFileList(const char* deletePath)
   std::map<std::string,ByWorkerMap > workers;
   ByWorkerMap* currentMap(0x0);
 
-  TIter next(&m);
+  TIter next(&fileMap);
   TObjString* s;
   
   while ( ( s = static_cast<TObjString*>(next()) ) )
@@ -104,7 +222,7 @@ void VAF::AnalyzeFileList(const char* deletePath)
     currentMap = &(workers[worker]);
     std::cout << "worker = " << worker << std::endl;
 
-    TList* fileInfoList = static_cast<TList*>(m.GetValue(worker.c_str()));
+    TList* fileInfoList = static_cast<TList*>(fileMap.GetValue(worker.c_str()));
     
     TIter nextInfo(fileInfoList);
     AFFileInfo* fi;
@@ -120,27 +238,8 @@ void VAF::AnalyzeFileList(const char* deletePath)
         (*out) << "xrd " << worker << " rm " << path(ix,path.Length()-ix) << std::endl;
       }
       
-      TString file = gSystem->BaseName(path.Data());
+      TString file = GetFileType(path.Data());
       
-      if ( file.Contains("FILTER_RAWMUON") )
-      {
-        file = "FILTER_RAWMUON";
-      }
-      
-      if ( file.BeginsWith("12000") )
-      {
-        file = "RAW 2012";
-      }
-      
-      if ( file.BeginsWith("11000") )
-      {
-        file = "RAW 2011";
-      }
-      
-      if ( file.BeginsWith("10000") )
-      {
-        file = "RAW 2010";
-      }
       
       unsigned long thisSize = fi->fSize;
       
@@ -463,7 +562,11 @@ void VAF::GetSearchAndBaseName(Int_t runNumber, const char* basename,
   {
     if ( sdatatype.Contains("ESD") )
     {
-      if ( ( ( swhat.Contains("_Outer") || swhat.Contains("_Barrel") ) && TString(esdpass) == "cpass1" )
+      if ( sbasename.BeginsWith("/alice/sim") )
+      {
+        mbasename.Form("%s/%d",basename,runNumber);
+      }
+      else if ( ( ( swhat.Contains("_Outer") || swhat.Contains("_Barrel") ) && TString(esdpass) == "cpass1" )
           || TString(esdpass) == "pass1" )
       {
         mbasename=Form("%s/%09d/%s/*.*",basename,runNumber,esdpass);
@@ -841,12 +944,28 @@ void VAF::MergeDataSets(const char* dsList)
 }
 
 //______________________________________________________________________________
-void VAF::GetFileInfoList(TList& fileInfoList)
+void VAF::WriteFileMap(const char* outputfile)
 {
   TMap m;
-  m.SetOwnerKeyValue(kTRUE,kTRUE);
   GetFileMap(m);
-  
+  TFile* file = TFile::Open(outputfile,"recreate");
+  m.Write("fileMap",TObject::kSingleKey);
+  delete file;
+}
+
+//______________________________________________________________________________
+void VAF::WriteFileInfoList(const char* outputfile)
+{
+  TList fileInfoList;
+  GetFileInfoList(fileInfoList);
+  TFile* file = TFile::Open(outputfile,"recreate");
+  fileInfoList.Write("fileInfoList",TObject::kSingleKey);
+  delete file;
+}
+
+//______________________________________________________________________________
+void VAF::GetFileInfoList(TList& fileInfoList, TMap& m)
+{
   TIter nextWorker(&m);
   TObjString* worker;
   
@@ -864,7 +983,18 @@ void VAF::GetFileInfoList(TList& fileInfoList)
 }
 
 //______________________________________________________________________________
-Int_t VAF::DecodePath(const char* path, TString& period, TString& esdPass, TString& aodPass, Int_t& runNumber) const
+void VAF::GetFileInfoList(TList& fileInfoList)
+{
+  TMap m;
+  m.SetOwnerKeyValue(kTRUE,kTRUE);
+  GetFileMap(m);
+  
+  GetFileInfoList(fileInfoList,m);
+}
+
+//______________________________________________________________________________
+Int_t VAF::DecodePath(const char* path, TString& period, TString& esdPass, TString& aodPass,
+                      Int_t& runNumber, TString& user) const
 {
   TString dir = gSystem->DirName(path);
   
@@ -891,6 +1021,11 @@ Int_t VAF::DecodePath(const char* path, TString& period, TString& esdPass, TStri
       esdPass = static_cast<TObjString*>(parts->At(i+1))->String();
     }
     
+    if ( s.BeginsWith("cpass") || s.BeginsWith("vpass") )
+    {
+      esdPass = s;
+    }
+    
     if ( s.BeginsWith("AOD") )
     {
       aodPass = s;
@@ -901,18 +1036,43 @@ Int_t VAF::DecodePath(const char* path, TString& period, TString& esdPass, TStri
       runNumber = TString(s(3,6)).Atoi();
       rv = TString(path).Index(s.Data());
     }
+
+    if ( s.Length() == 6 && s.IsDigit() )
+    {
+      runNumber = s.Atoi();
+      rv = TString(path).Index(s.Data());
+    }
+
   }
 
+  if ( dir.BeginsWith("/alice/cern.ch/user") )
+  {
+    TObjArray* a = dir.Tokenize("/");
+    user = static_cast<TObjString*>(a->At(4))->String();
+    delete a;
+    rv=0;
+  }
+  
   if (period.Length()==0 && !TString(path).Contains("/alice/cern.ch/user") )
   {
     // must have a period for anything not user land
-    return -1;
+    rv = -1;
   }
   
-  if ( esdPass.Length()== 0 && TString(path).Contains("/alice/data") )
+  if ( esdPass.Length()== 0 && TString(path).Contains("/alice/data") && !TString(path).Contains("/raw/"))
   {
-    // must find the esd pass for official data !
-    return -1;
+    if ( aodPass.Length() == 0 )
+    {
+      // must find the esd pass and/or the aod pass for official data that is not raw data !
+      rv = -2;
+    }
+  }
+  
+  if ( rv < 0 )
+  {
+    std::cout << Form("rv=%d path=%s\n period=%s esdpass=%s aodpass=%s runnumber=%d user=%s",rv,
+                    path,period.Data(),esdPass.Data(),aodPass.Data(),runNumber,user.Data())
+    << std::endl;
   }
   
   return rv;
@@ -939,9 +1099,16 @@ ULong64_t VAF::SumSize(const TList& list) const
   AFFileInfo* fi;
   TIter next(&list);
   ULong64_t size(0);
+  ULong64_t m(0);
+  AFFileInfo* mfi(0x0);
   
   while ( ( fi = static_cast<AFFileInfo*>(next())))
   {
+    if ( fi->fSize > m )
+    {
+      m = fi->fSize;
+      mfi = fi;
+    }
     size += fi->fSize;
   }
   
@@ -954,17 +1121,20 @@ void VAF::GenerateHTMLTreeMap()
   TList fileInfoList;
   fileInfoList.SetOwner(kTRUE);
   GetFileInfoList(fileInfoList);
+  
+  GenerateHTMLTreeMap(fileInfoList);
+}
 
+//______________________________________________________________________________
+void VAF::GenerateHTMLTreeMap(const TList& fileInfoList)
+{
   AFFileInfo* fileInfo;
   TIter next(&fileInfoList);
-//  Int_t n(10000);
   TMap m;
   
   // first loop to make a map of the paths hierarchy stopping at the depth of the root file - 2
-  while ( ( fileInfo = static_cast<AFFileInfo*>(next()) ) /* && n > 0 */)
+  while ( ( fileInfo = static_cast<AFFileInfo*>(next()) ) )
   {
-//    --n;
-    
     TString file = gSystem->BaseName(fileInfo->fFullPath.Data());
     
     TObjArray* a = fileInfo->fFullPath.Tokenize("/");
@@ -976,11 +1146,6 @@ void VAF::GenerateHTMLTreeMap()
       truncatedPath += static_cast<TObjString*>(a->At(i))->String();
     }
 
-//    if ( truncatedPath.BeginsWith("/alice/sim") && truncatedPath.EndsWith("AOD") )
-//    {
-//      continue;
-//    }
-    
     TList* list = static_cast<TList*>(m.GetValue(truncatedPath));
     
     if (!list)
@@ -1077,25 +1242,202 @@ void VAF::GenerateHTMLTreeMap()
     table += line;
   }
 
-  std::ifstream in(Form("%s.template",fTreeMapHtmlFileName.Data()));
+  std::ifstream in(fTreeMapTemplateHtmlFileName.Data());
   TString text;
   
   text.ReadFile(in);
   
   text.ReplaceAll("INSERTDATAHERE",table.Data());
   
-  std::ofstream out(fTreeMapHtmlFileName.Data());
+  std::ofstream out(Form("%s/%s.treemap.html",fHtmlDir.Data(),fMaster.Data()));
   out << text.Data();
   
 }
 
 //______________________________________________________________________________
-void VAF::GroupFileList(TMap& groups)
+ULong64_t VAF::GenerateASCIIFileList(const char* key, const char* value, const TList& list) const
 {
-  TList fileInfoList;
-  fileInfoList.SetOwner(kTRUE);
-  GetFileInfoList(fileInfoList);
+  TString filename;
   
+  gSystem->mkdir(fHtmlDir.Data(),true);
+  
+  filename.Form("%s/%s.%s.%s.txt",fHtmlDir.Data(),fMaster.Data(),key,value);
+  
+  ofstream out(filename.Data());
+  
+  TIter next(&list);
+  AFFileInfo* fi;
+  
+  while ( ( fi = static_cast<AFFileInfo*>(next())) )
+  {
+    out << (*fi) << std::endl;
+  }
+  
+  out.close();
+
+  FileStat_t buf;
+
+  gSystem->GetPathInfo(filename.Data(),buf);
+
+  return buf.fSize;
+}
+
+//______________________________________________________________________________
+void VAF::GenerateHTMLPieChars(const TMap& groups)
+{
+  std::map<std::string,std::string> tables;
+  
+  TIter nextGroup(&groups);
+  TObjString* s;
+  
+  tables["FILETYPE"] += "[ 'FileType', 'Size' ],\n ";
+  tables["PERIOD"] += "[ 'Period', 'Size' ],\n";
+  tables["DATATYPE"] += "[ 'Data type', 'Size' ],\n";
+  
+  tables["USER"] += " ['User', 'Size'],\n";
+  tables["ESDPASS"] += " ['Pass', 'Size'],\n";
+  tables["AOD"] += " ['AOD', 'Size'],\n";
+
+  TString filesDeclarations = "var filesDeclarations = [";
+  
+  while ( ( s = static_cast<TObjString*>(nextGroup()) ) )
+  {
+    TList* list = dynamic_cast<TList*>(groups.GetValue(s->String().Data()));
+    
+    ULong64_t size = SumSize(*list);
+    
+    TObjArray* a = s->String().Tokenize(":");
+    if ( a->GetSize() < 2 ) continue;
+    
+    TString key = static_cast<TObjString*>(a->First())->String();
+    TString value = static_cast<TObjString*>(a->At(1))->String();
+    delete a;
+    
+    if ( tables.count(key.Data()) )
+    {
+      tables[key.Data()] += Form("[ '%s', { v:%7.2f, f:'%7.2f GB'} ],\n",value.Data(),size/byte2GB,size/byte2GB);
+      ULong64_t fileSize = GenerateASCIIFileList(key.Data(),value.Data(),*list);
+      
+      TString filename;
+      
+      filename.Form("%s.%s.%s.txt",fMaster.Data(),key.Data(),value.Data());
+      
+      filesDeclarations += Form("{ name: '%s', size : %llu, lc : %d },\n",
+                               filename.Data(),fileSize,list->GetSize());
+    }
+  }
+
+  filesDeclarations += "];\n";
+  
+  TString html;
+  
+  html += "<html>\n";
+  html += "<head>\n";
+  html += Form("<title>%s</title>\n",fMaster.Data());
+  html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"af.css\"/>\n";
+  html += "<script type=\"text/javascript\" src=\"//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js\"></script>\n";
+  html += "<script type=\"text/javascript\" src=\"https://www.google.com/jsapi\"></script>\n";
+  html += "<script type=\"text/javascript\">\n";
+  html += "google.load(\"visualization\", \"1\", {packages:[\"corechart\"]});\n";
+  html += "google.setOnLoadCallback(drawChart);\n";
+  html += "function drawChart() {\n";
+  
+  html += filesDeclarations;
+  
+  for ( std::map<std::string,std::string>::const_iterator it = tables.begin(); it != tables.end(); ++it )
+  {
+    TObjArray* a = TString(it->second.c_str()).Tokenize("\n");
+    if ( a->GetSize() < 2 )
+    {
+      delete a;
+      continue;
+    }
+    
+    delete a;
+    
+    html += Form("var data%s = google.visualization.arrayToDataTable([\n",it->first.c_str());
+    html += it->second.c_str();
+    html += "]);\n";
+    html += Form("var options%s = { \n",it->first.c_str());
+    html += Form("title: 'Disk space by %s',\n",it->first.c_str());
+    html += "pieSliceText: 'label' };\n";
+    html += Form("var chart%s = new google.visualization.PieChart(document.getElementById('piechart_%s'));\n",
+                 it->first.c_str(),it->first.c_str());
+    html += Form("chart%s.draw(data%s,options%s);\n",it->first.c_str(),it->first.c_str(),it->first.c_str());
+    
+    html += Form("function selectHandler%s() {\n",it->first.c_str());
+    html += Form("var selectedItem = chart%s.getSelection()[0];\n",it->first.c_str());
+    html += "if (selectedItem) {\n";
+    html += Form("  var sel = data%s.getValue(selectedItem.row,0);\n",it->first.c_str());
+
+    html += Form("  var filename = '%s.%s.' + data%s.getValue(selectedItem.row,0) + '.txt';\n",
+                 fMaster.Data(),it->first.c_str(),
+                 it->first.c_str());
+
+    
+    html += "showFile(filename);\n";
+    html += "}\n";
+    html += "}\n";
+    
+    html += Form("google.visualization.events.addListener(chart%s,'select',selectHandler%s);\n",
+                 it->first.c_str(),it->first.c_str());
+  }
+  
+  
+  html += " var x = null; var y = null;";
+  html += "document.addEventListener('mousemove', onMouseUpdate, false);\n";
+  html += "document.addEventListener('mouseenter', onMouseUpdate, false);\n";
+  
+  html += "function onMouseUpdate(e) { x = e.pageX; y = e.pageY;}\n";
+  
+  html += "function findObject(a, name) {for (var i = 0; i < a.length; i++) {if (a[i].name === name) { return  a[i];}}return null;}\n";
+  
+  html += "$(\"#listjumper\").click(function() { $(this).css(\"display\",\"none\"); });\n";
+  
+  html += "function showFile(filename) {\n";
+
+  html += "var listjumper = $(\"#listjumper\");\n";
+    
+  html += "var file = findObject(filesDeclarations,filename);\n";
+  
+  html += "var size = file.size/1024.0/1024;\n";
+  
+  html += "var msg = '<p>Click the link below to get access to the list of ' + file.lc + ' files in this category</p>';\n";
+    
+  html += "msg += '<p><a href=\"' + filename + '\">' + filename + '</a> (' + size.toFixed(2) + ' MB text file)</p>';\n";
+    
+  html += "listjumper.html(msg).css( { display: 'block', top: y , left: x } ) }\n";
+  
+  html += "} \n";
+
+  html += "</script>\n";
+  html += "</head>\n";
+  html += "<body>\n";
+
+
+  html += Form("<div><h1>Disk space usage details on %s</h1></div>\n",fMaster.Data());
+
+  for ( std::map<std::string,std::string>::const_iterator it = tables.begin(); it != tables.end(); ++it )
+  {
+    html += Form("<div id=\"piechart_%s\" style=\"width: 1200px; height:500px\"></div>\n",
+                 it->first.c_str());
+  }
+  
+  html += "<div id=\"listjumper\">-</div>\n";
+  
+  html += "</body>\n";
+  html += "</html>\n";
+
+  gSystem->mkdir(fHtmlDir.Data(),true);
+  
+  std::ofstream out(Form("%s/%s.piecharts.html",fHtmlDir.Data(),fMaster.Data()));
+  out << html.Data();
+
+}
+
+//______________________________________________________________________________
+void VAF::GroupFileInfoList(const TList& fileInfoList, TMap& groups)
+{
   groups.SetOwnerKeyValue(kTRUE,kTRUE);
   
   AFFileInfo* fileInfo;
@@ -1103,26 +1445,25 @@ void VAF::GroupFileList(TMap& groups)
   
   while ( ( fileInfo = static_cast<AFFileInfo*>(next()) ) )
   {
-    TString file = gSystem->BaseName(fileInfo->fFullPath.Data());
+    TString file = GetFileType(fileInfo->fFullPath.Data());
     
     // first group by file type
-
-    AddFileToGroup(groups,file,*fileInfo);
+    AddFileToGroup(groups,Form("FILETYPE:%s",file.Data()),*fileInfo);
     
     // then broad categories : offical DATA, official SIM, and user land
     if ( fileInfo->fFullPath.BeginsWith("/alice/data") )
     {
-      AddFileToGroup(groups,"DATA",*fileInfo);
+      AddFileToGroup(groups,"DATATYPE:DATA",*fileInfo);
     }
 
     if ( fileInfo->fFullPath.BeginsWith("/alice/sim") )
     {
-      AddFileToGroup(groups,"SIM",*fileInfo);
+      AddFileToGroup(groups,"DATATYPE:SIM",*fileInfo);
     }
 
     if ( fileInfo->fFullPath.BeginsWith("/alice/cern.ch/user") )
     {
-      AddFileToGroup(groups,"USER",*fileInfo);
+      AddFileToGroup(groups,"DATATYPE:USER",*fileInfo);
     }
 
     // Now group by period / esdPass / aodPass
@@ -1131,40 +1472,80 @@ void VAF::GroupFileList(TMap& groups)
     TString esdPass("");
     TString aodPass("");
     Int_t runNumber(-1);
+    TString user("");
     
-    Int_t rv = DecodePath(fileInfo->fFullPath.Data(),period,esdPass,aodPass,runNumber);
+    Int_t rv = DecodePath(fileInfo->fFullPath.Data(),period,esdPass,aodPass,runNumber,user);
     
     if (rv<0)
     {
       std::cout << "Could not find period/esdpass/aodpass/runnumber for path " << fileInfo->fFullPath.Data() << std::endl;
+      return;//FIXME: remove this which is just for debug !
       continue;
+    }
+    
+    if ( user.Length() > 0 )
+    {
+      AddFileToGroup(groups,Form("USER:%s",user.Data()),*fileInfo);
+
     }
     
     if ( runNumber > 0 )
     {
       // this is not strictly needed but might help to point to "golden" runs
-      AddFileToGroup(groups,Form("%09d",runNumber),*fileInfo);
+      AddFileToGroup(groups,Form("RUN:%09d",runNumber),*fileInfo);
     }
     
     if ( period.Length() > 0 )
     {
-      AddFileToGroup(groups,period,*fileInfo);
+      AddFileToGroup(groups,Form("PERIOD:%s",period.Data()),*fileInfo);
 
       if ( esdPass.Length() > 0 )
       {
-        AddFileToGroup(groups,Form("%s/%s",period.Data(),esdPass.Data()),*fileInfo);
+        AddFileToGroup(groups,Form("ESDPASS:%s_%s",period.Data(),esdPass.Data()),*fileInfo);
 
         if ( aodPass.Length() > 0 )
         {
-          AddFileToGroup(groups,Form("%s/%s/%s",period.Data(),esdPass.Data(),aodPass.Data()),*fileInfo);
+          AddFileToGroup(groups,Form("AOD:%s_%s_%s",period.Data(),esdPass.Data(),aodPass.Data()),*fileInfo);
 
         
-          AddFileToGroup(groups,Form("%s/%s/%s/%09d",period.Data(),esdPass.Data(),aodPass.Data(),runNumber),*fileInfo);
+          AddFileToGroup(groups,Form("DS:%s_%s_%s_%09d",period.Data(),esdPass.Data(),aodPass.Data(),runNumber),*fileInfo);
 
         }
-
+      }
+      else {
+        if ( aodPass.Length() > 0 )
+        {
+          AddFileToGroup(groups,Form("AOD:%s_%s",period.Data(),aodPass.Data()),*fileInfo);
+          
+          
+          AddFileToGroup(groups,Form("DS:%s_%s_%09d",period.Data(),aodPass.Data(),runNumber),*fileInfo);
+          
+        }
+        
       }
     }
+  }
+  
+  TObjArray keys;
+  
+  TIter nextGroup(&groups);
+  TObjString* s;
+  
+  while ( ( s = static_cast<TObjString*>(nextGroup()) ) )
+  {
+    keys.Add(new TObjString(*s));
+  }
+  
+  keys.Sort();
+  
+  TIter nextSortedGroup(&keys);
+  
+  while ( ( s = static_cast<TObjString*>(nextSortedGroup()) ) )
+  {
+    TList* list = dynamic_cast<TList*>(groups.GetValue(s->String().Data()));
+    assert (list!=0);
+    ULong64_t size = SumSize(*list);
+    std::cout << Form("%-50s has %6d files for a total of %7.2f GB",s->String().Data(),list->GetSize(), size/byte2GB) << std::endl;
   }
 }
 
@@ -1372,11 +1753,13 @@ void VAF::ShowDataSetList(const char* path)
 
   TIter next(&datasets);
   TObjString* dsName;
-  
+
   while ((dsName = static_cast<TObjString*>(next())))
   {
-    // FIXME : check the match with path !
-    std::cout << dsName->String().Data() << std::endl;
+    if ( dsName->String().Contains(path) )
+    {
+      std::cout << dsName->String().Data() << std::endl;
+    }
   }
 }
 
@@ -1522,6 +1905,7 @@ TString VAF::GetStringFromExec(const char* cmd, const char* ord)
     
     while ( ( s2 = static_cast<TObjString*>(next2())) )
     {
+      if ( s2->String().Contains("No such file or directory") ) continue;
       rv += s2->String();
       rv += "\n";
     }
@@ -1531,7 +1915,7 @@ TString VAF::GetStringFromExec(const char* cmd, const char* ord)
 }
 
 //______________________________________________________________________________
-void VAF::GetFileMap(TMap& files)
+void VAF::GetFileMap(TMap& files, const char* worker)
 {
   // Retrieve the complete list of files on this AF.
   // The map is indexed by hostname. For each hostname there a list
@@ -1556,10 +1940,20 @@ void VAF::GetFileMap(TMap& files)
   // the /alice/sim directory is not strictly ordered by year...
   // so have to get a full list of the first level below it...
   
-  TString s = GetStringFromExec(Form(".! find %s/alice/sim/2013 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  topdirs.insert(Form("%s/alice/cern.ch",u.GetFile()));
   
-//  s += GetStringFromExec(Form(".! find %s/alice/data -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  TString s;
   
+  s += GetStringFromExec(Form(".! find %s/alice/sim -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+
+  s += GetStringFromExec(Form(".! find %s/alice/data/2010 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  s += GetStringFromExec(Form(".! find %s/alice/data/2011 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  s += GetStringFromExec(Form(".! find %s/alice/data/2012 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  s += GetStringFromExec(Form(".! find %s/alice/data/2013 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  s += GetStringFromExec(Form(".! find %s/alice/data/2014 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+  
+//  s += GetStringFromExec(Form(".! find %s/alice/data/2015 -type d -mindepth 1 -maxdepth 1 ",u.GetFile()));
+
   TObjArray* a = s.Tokenize("\n");
   TObjString* os;
   TIter next(a);
@@ -1571,48 +1965,69 @@ void VAF::GetFileMap(TMap& files)
   
   delete a;
   
-  s = "";
-  
   for ( Int_t i = 0; i < nworkers; ++i )
   {
     TSlaveInfo* slave = static_cast<TSlaveInfo*>(list->At(i));
+    
+    if (strlen(worker) && slave->fHostName != worker ) continue;
     
     TList* fileList = new TList;
     fileList->SetOwner(kTRUE);
     
     files.Add(new TObjString(slave->fHostName),fileList);
     
-    std::cout << "Looking for files for slave " << slave->fHostName << " " << slave->GetOrdinal() << std::endl;
+    s = "";
     
     for ( std::set<std::string>::const_iterator it = topdirs.begin(); it != topdirs.end(); ++it )
     {
-      std::cout << " in directory " << it->c_str() << std::endl;
-      s += GetStringFromExec(Form(".! find %s -exec stat -L -c '%%A %%U %%G %%s %%Y %%n' {} \\;",it->c_str()),
-                            slave->GetOrdinal());
+      std::cout << "Looking for files for slave " << slave->fHostName << " " << slave->GetOrdinal()
+        << " in directory " << it->c_str() << std::endl;
+
+      TString cmd;
+      
+      cmd.Form(".! find %s -type %c -exec stat -L -c '%%s %%Y %%n' {} \\; | grep -v lock | grep -v LOCK",
+               it->c_str(),FileTypeToLookFor());
+      
+//      std::cout << cmd.Data() << std::endl;
+      
+        s += GetStringFromExec(cmd.Data(),slave->GetOrdinal());
     }
 
     TObjArray* b = s.Tokenize("\n");
     TIter next2(b);
-  
+    
     while ( ( os = static_cast<TObjString*>(next2())) )
     {
       TString tmp(os->String());
-    
-      if (!tmp.BeginsWith("d")) // skip directories
+      
+      AFFileInfo* fi = new AFFileInfo(tmp.Data(),u.GetFile(),slave->fHostName);
+      if ( fi->fSize > 0 )
       {
-        AFFileInfo* fi = new AFFileInfo(tmp.Data(),u.GetFile());
-        if ( fi->fSize > 0 )
-        {
-          fileList->Add(fi);
-        }
-        else
-        {
-          delete fi;
-        }
+        fileList->Add(fi);
+      }
+      else
+      {
+        delete fi;
       }
     }
-
+    
     delete b;
   }
   
+}
+
+//______________________________________________________________________________
+void VAF::Print(Option_t* opt) const
+{
+  std::cout << ClassName()
+  << " talking to " << fMaster.Data() << std::endl
+  << " LogDir         :  " << fLogDir.Data() << std::endl
+  << " HomeDir        :  " << fHomeDir.Data() << std::endl
+  << " FileType       :  " << FileTypeToLookFor() << std::endl
+  << " DynamicDataSet : " << fIsDynamicDataSet << std::endl;
+  
+  if ( fDryRun )
+  {
+    std::cout << "Currently in dry run mode " << std::endl;
+  }
 }

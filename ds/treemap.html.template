@@ -19,7 +19,7 @@
     midColor: '#fd8d3c',
     maxColor: '#bd0026',
     showScale: true,
-    maxDepth: 2,
+    maxDepth: 1,
     generateTooltip: showSizeTooltip
   };
 
@@ -36,6 +36,6 @@
   </head>
 
   <body>
-    <div id="chart_div" style="width: 900px; height: 500px;"></div>
+    <div id="chart_div" style="width: 1200px; height: 600px;"></div>
   </body>
 </html>

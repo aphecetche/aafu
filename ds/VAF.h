@@ -14,21 +14,20 @@ class TMap;
 class AFFileInfo : public TNamed
 {
 public:
-  AFFileInfo(const char* lsline, const char* prefix);
+  AFFileInfo(): TNamed(), fSize(0), fTime(), fFullPath("") {}
+  AFFileInfo(const char* lsline, const char* prefix, const char* hostname);
   
   friend std::ostream& operator<<(std::ostream& os, const AFFileInfo& fileinfo);
   
   void Print(Option_t* opt="") const { std::cout << (*this) << std::endl; }
   
 public:
-  TString fMode;
-  TString fUser;
-  TString fGroup;
   Long64_t fSize;
   TDatime fTime;
   TString fFullPath;
+  TString fHostName;
   
-  ClassDef(AFFileInfo,1)
+  ClassDef(AFFileInfo,2)
 };
 
 
@@ -39,6 +38,8 @@ public:
 class VAF : public TObject
 {
 public:
+  
+  static VAF* Create(const char* af);
   
   VAF(const char* master);
   
@@ -66,7 +67,7 @@ public:
   
   TString LogDir() const { return fLogDir; }
   
-  void GetFileMap(TMap& files);
+  void GetFileMap(TMap& files, const char* worker="");
   
   virtual void CreateDataSets(const std::vector<int>& runs,
                               const char* dataType = "aodmuon",
@@ -117,7 +118,7 @@ public:
   
   void UseFilter(const char* filtername) { fFilterName=filtername; }
 
-  void AnalyzeFileList(const char* deletePath="");
+  void AnalyzeFileMap(const TMap& fileMap, const char* deletePath="");
 
   virtual void GetDataSetList(TList& list, const char* path="/*/*/*");
   
@@ -143,16 +144,36 @@ public:
   
   void GetFileInfoList(TList& fileInfoList);
  
-  void GroupFileList(TMap& groups);
+  void GetFileInfoList(TList& fileInfoList, TMap& m);
+
+  void GroupFileInfoList(const TList& fileInfoList, TMap& groups);
+  
+  void GenerateHTMLPieChars(const TMap& groups);
   
   void GenerateHTMLTreeMap();
-  
-protected:
-  
-  TString GetStringFromExec(const char* cmd, const char* ord="*");
+
+  void GenerateHTMLTreeMap(const TList& fileInfoList);
+
+  char FileTypeToLookFor() const { return fFileTypeToLookFor; }
+
+  void SetFileTypeToLookFor(char type) { fFileTypeToLookFor=type;  }
+
+  virtual void Print(Option_t* opt="") const;
 
   Bool_t Connect(const char* option="masteronly");
   
+  void WriteFileInfoList(const char* outputfile);
+
+  void WriteFileMap(const char* outputfile);
+  
+  ULong64_t SumSize(const TList& list) const;
+  
+protected:
+  
+  TString GetFileType(const char* path) const;
+
+  TString GetStringFromExec(const char* cmd, const char* ord="*");
+
   TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;
 
   void GetSearchAndBaseName(Int_t runNumber, const char* sbasename, const char* what, const char* dataType,
@@ -161,13 +182,13 @@ protected:
 
   void ReadIntegers(const char* filename, std::vector<int>& integers);
   
-  Int_t DecodePath(const char* path, TString& period, TString& esdPass, TString& aodPass, Int_t& runNumber) const;
+  Int_t DecodePath(const char* path, TString& period, TString& esdPass, TString& aodPass, Int_t& runNumber, TString& user) const;
 
   void AddFileToGroup(TMap& groups, const TString& file, const AFFileInfo& fileInfo);
 
-  ULong64_t SumSize(const TList& list) const;
+  ULong64_t GenerateASCIIFileList(const char* key, const char* value, const TList& list) const;
 
-private:
+protected:
   TString fConnect; // Connect string (afmaster)
   Bool_t fDryRun; // whether to do real things or just show what would be done
   Bool_t fMergedOnly; // pick only the merged AODs when merging is in the same directory as non-merged...
@@ -179,9 +200,11 @@ private:
   Bool_t fIsDynamicDataSet; // static of dynamic datasets ?
   TString fHomeDir; // home dir of the proof-aaf installation
   TString fLogDir; // log dir of the proof-aaf installation
-  TString fTreeMapHtmlFileName;
+  TString fTreeMapTemplateHtmlFileName;
+  Char_t fFileTypeToLookFor; // file type (f for file or l for link) to look for in GetFileInfoList
+  TString fHtmlDir; // directory for HTML report(s)
   
-  ClassDef(VAF,7)
+  ClassDef(VAF,8)
 };
 
 #endif

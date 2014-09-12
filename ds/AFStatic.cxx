@@ -57,6 +57,7 @@ void MakeRawCollection(const char* runlist, const char* collectionName, const ch
 //______________________________________________________________________________
 AFStatic::AFStatic(const char* master) : VAF(master)
 {
+  fIsDynamicDataSet = kFALSE;
 }
 
 //______________________________________________________________________________
