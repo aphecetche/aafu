@@ -29,6 +29,7 @@
 #include "TMethodCall.h"
 #include <cassert>
 #include "TSystem.h"
+#include "TGrid.h"
 
 namespace
 {
@@ -142,6 +143,54 @@ fHtmlDir(Form("%s/html",gSystem->pwd()))
   }
   
 //  std::cout << "Connect string to be used = " << fConnect.Data() << std::endl;
+}
+
+//______________________________________________________________________________
+void VAF::CopyFromRemote(const char* txtfile) const
+{
+  /// Copy a list of remote urls locally, keeping the absolute path
+  /// (the destination local directory must exist and be writeable, of course)
+  
+  char line[1024];
+  ifstream in(gSystem->ExpandPathName(txtfile));
+  
+  while ( in.getline(line,1024,'\n') )
+  {
+  	TUrl url(line);
+  	
+    if ( TString(url.GetProtocol()) == "alien" )
+    {
+      if (!gGrid)
+      {
+        TGrid::Connect("alien://");
+        if (!gGrid)
+        {
+          cout << "Cannot get alien connection" << endl;
+          return;
+        }
+      }
+      
+    }
+  	TString file(url.GetFile());
+  	
+  	TString dir(gSystem->DirName(file));
+  	
+  	gSystem->mkdir(dir.Data(),kTRUE);
+    
+    if ( gSystem->AccessPathName(file.Data())==kFALSE)
+    {
+      cout << "Skipping copy of " << file.Data() << " as it already exists" << endl;
+    }
+    else
+    {
+  	  TFile::Cp(line,file.Data());
+      if ( TString(line).Contains("root_archive.zip") )
+      {
+        gSystem->Exec(Form("unzip %s -d %s",file.Data(),gSystem->DirName(file.Data())));
+        gSystem->Exec(Form("rm %s",file.Data()));
+      }
+  	}
+  }
 }
 
 //______________________________________________________________________________
@@ -946,9 +995,19 @@ void VAF::MergeDataSets(const char* dsList)
 //______________________________________________________________________________
 void VAF::WriteFileMap(const char* outputfile)
 {
+  /// Compute and write the file map into a root file
+  /// If outputfile is empty, use fMaster.filemap.[date in seconds].root as a name
+  
+  TString soutputfile(outputfile);
+  
+  if ( soutputfile.Length() == 0 )
+  {
+    soutputfile.Form("%s.filemap.%u.root",fMaster.Data(),TDatime().Convert());
+  }
+  
   TMap m;
   GetFileMap(m);
-  TFile* file = TFile::Open(outputfile,"recreate");
+  TFile* file = TFile::Open(soutputfile.Data(),"recreate");
   m.Write("fileMap",TObject::kSingleKey);
   delete file;
 }
@@ -956,6 +1015,16 @@ void VAF::WriteFileMap(const char* outputfile)
 //______________________________________________________________________________
 void VAF::WriteFileInfoList(const char* outputfile)
 {
+  /// Compute and write the file list into a root file
+  /// If outputfile is empty, use fMaster.fileinfolist.[date in seconds].root as a name
+
+  TString soutputfile(outputfile);
+  
+  if ( soutputfile.Length() == 0 )
+  {
+    soutputfile.Form("%s.fileinfolist.%u.root",fMaster.Data(),TDatime().Convert());
+  }
+
   TList fileInfoList;
   GetFileInfoList(fileInfoList);
   TFile* file = TFile::Open(outputfile,"recreate");
@@ -964,8 +1033,10 @@ void VAF::WriteFileInfoList(const char* outputfile)
 }
 
 //______________________________________________________________________________
-void VAF::GetFileInfoList(TList& fileInfoList, TMap& m)
+void VAF::GetFileInfoListFromMap(TList& fileInfoList, const TMap& m)
 {
+  // Fill the file info from the file map (reverse operation of GroupFileInfoList)
+  
   TIter nextWorker(&m);
   TObjString* worker;
   
@@ -989,7 +1060,7 @@ void VAF::GetFileInfoList(TList& fileInfoList)
   m.SetOwnerKeyValue(kTRUE,kTRUE);
   GetFileMap(m);
   
-  GetFileInfoList(fileInfoList,m);
+  GetFileInfoListFromMap(fileInfoList,m);
 }
 
 //______________________________________________________________________________
@@ -1116,13 +1187,73 @@ ULong64_t VAF::SumSize(const TList& list) const
 }
 
 //______________________________________________________________________________
-void VAF::GenerateHTMLTreeMap()
+const char* VAF::GetHtmlPieFileName() const
+{
+  TString name;
+  
+  name.Form("%s.picharts.html",fMaster.Data());
+
+  return name.Data();
+}
+
+//______________________________________________________________________________
+const char* VAF::GetHtmlTreeMapFileName() const
+{
+  TString name;
+  
+  name.Form("%s.treemap.html",fMaster.Data());
+  
+  return name.Data();
+}
+
+//______________________________________________________________________________
+void VAF::GenerateHTMLReports()
 {
   TList fileInfoList;
-  fileInfoList.SetOwner(kTRUE);
   GetFileInfoList(fileInfoList);
+  GenerateHTMLReports(fileInfoList);
+}
+
+//______________________________________________________________________________
+void VAF::GenerateHTMLReports(const TList& fileInfoList)
+{
+  /// Generate HTML reports for this AF, using the file info found in the fileInfoList
   
+  // Make the treemap chart
   GenerateHTMLTreeMap(fileInfoList);
+
+  TMap g;
+  GroupFileInfoList(fileInfoList,g);
+  
+  // Make the pie charts
+  GenerateHTMLPieChars(g);
+  
+  // and finally make the index.html
+  
+  ofstream out(Form("%s/index.html",fHtmlDir.Data()));
+  
+  TString html;
+  
+  html += "<html>\n";
+  html += "<head>\n";
+  html += Form("<title>%s</title>\n",fMaster.Data());
+  html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"af.css\"/>\n";
+  html += "<body>\n";
+  html += "<h1>Data on nansafmaster.in2p3.fr</h1>\n";
+  
+  html += "<ul>\n";
+  
+  html += Form("<li><a href=\"%s\">Pie charts of disk usage by file type, data type, pass, etc... </a></li>\n",GetHtmlPieFileName());
+
+  html += Form("<li><a href=\"%s\">Tree map of disk usage</a></li>\n",GetHtmlTreeMapFileName());
+
+  html += "</ul>\n";
+  
+  html += Form("<p class=\"footer\">Generated on %s</h2>\n",TDatime().AsString());
+  
+  html += "</body>\n";
+  html += "</html>\n";
+  out << html.Data();
 }
 
 //______________________________________________________________________________
@@ -1242,15 +1373,55 @@ void VAF::GenerateHTMLTreeMap(const TList& fileInfoList)
     table += line;
   }
 
-  std::ifstream in(fTreeMapTemplateHtmlFileName.Data());
-  TString text;
+  TString html;
   
-  text.ReadFile(in);
+  html += "<html>\n";
+  html += "<head>\n";
+  html += Form("<title>%s</title>\n",fMaster.Data());
+  html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"af.css\"/>\n";
+  html += "<script type=\"text/javascript\" src=\"https://www.google.com/jsapi\"></script>\n";
+  html += "<script type=\"text/javascript\">\n";
+  html += "google.load(\"visualization\", \"1\", {packages:[\"corechart\"]});\n";
+  html += "google.setOnLoadCallback(drawChart);\n";
+  html += "function drawChart() {\n";
+
+  html += "var data = google.visualization.arrayToDataTable(\n";
+  html += "[\n";
   
-  text.ReplaceAll("INSERTDATAHERE",table.Data());
+  html += table.Data();
   
-  std::ofstream out(Form("%s/%s.treemap.html",fHtmlDir.Data(),fMaster.Data()));
-  out << text.Data();
+  html += "];\n";
+
+  html += "var tree = new google.visualization.TreeMap(document.getElementById('chart_div'));\n";
+  
+  html += "var options = {\n";
+  html += "minColor: '#ffffb2',\n";
+  html += "midColor: '#fd8d3c',\n";
+  html += "maxColor: '#bd0026',\n";
+  html += "showScale: true,\n";
+  html += "maxDepth: 1,\n";
+  html += "generateTooltip: showSizeTooltip\n";
+  html += "};\n";
+  
+	html += "tree.draw(data,options);\n";
+  
+  html += "function showSizeTooltip(row,size,value) {\n";
+  html += "  var s = size/1024/1024/1024;\n";
+  html += "  return '<div style=\"background:#fd9; padding:10px; border-style:solid\">' +\n";
+  html += "  data.getValue(row, 0) + ' is ' + s.toFixed(1) + ' GB </div>';\n";
+  html += "}\n";
+  
+  html += "}\n";
+  html += "</script>\n";
+  html += "</head>\n";
+
+  html += "<body>\n";
+  html += "<div id=\"chart_div\" style=\"width: 1200px; height: 600px;\"></div>\n";
+  html += "</body>\n";
+  html += "</html>\n";
+
+  std::ofstream out(Form("%s/%s",fHtmlDir.Data(),GetHtmlTreeMapFileName()));
+  out << html.Data();
   
 }
 
@@ -1430,7 +1601,7 @@ void VAF::GenerateHTMLPieChars(const TMap& groups)
 
   gSystem->mkdir(fHtmlDir.Data(),true);
   
-  std::ofstream out(Form("%s/%s.piecharts.html",fHtmlDir.Data(),fMaster.Data()));
+  std::ofstream out(Form("%s/%s",fHtmlDir.Data(),GetHtmlPieFileName()));
   out << html.Data();
 
 }

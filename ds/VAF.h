@@ -144,13 +144,15 @@ public:
   
   void GetFileInfoList(TList& fileInfoList);
  
-  void GetFileInfoList(TList& fileInfoList, TMap& m);
+  void GetFileInfoListFromMap(TList& fileInfoList, const TMap& m);
 
   void GroupFileInfoList(const TList& fileInfoList, TMap& groups);
   
   void GenerateHTMLPieChars(const TMap& groups);
-  
-  void GenerateHTMLTreeMap();
+
+  void GenerateHTMLReports();
+
+  void GenerateHTMLReports(const TList& fileInfoList);
 
   void GenerateHTMLTreeMap(const TList& fileInfoList);
 
@@ -162,12 +164,14 @@ public:
 
   Bool_t Connect(const char* option="masteronly");
   
-  void WriteFileInfoList(const char* outputfile);
+  void WriteFileInfoList(const char* outputfile="");
 
-  void WriteFileMap(const char* outputfile);
+  void WriteFileMap(const char* outputfile="");
   
   ULong64_t SumSize(const TList& list) const;
   
+  void CopyFromRemote(const char* txtfile="saf.aods.txt") const;
+
 protected:
   
   TString GetFileType(const char* path) const;
@@ -187,6 +191,10 @@ protected:
   void AddFileToGroup(TMap& groups, const TString& file, const AFFileInfo& fileInfo);
 
   ULong64_t GenerateASCIIFileList(const char* key, const char* value, const TList& list) const;
+
+  const char* GetHtmlPieFileName() const;
+
+  const char* GetHtmlTreeMapFileName() const;
 
 protected:
   TString fConnect; // Connect string (afmaster)

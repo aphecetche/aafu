@@ -17,3 +17,8 @@ font-family: Arial, sans-serif;
 #listjumper a {
 	color: black;
 }
+
+p.footer {
+  font.size: 0.5em;
+  font.color: #3333EE;
+}
