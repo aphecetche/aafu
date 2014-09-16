@@ -113,6 +113,11 @@ void AFDynamic::CreateDataSets(const std::vector<int>& runs,
   
     std::cout << query.Data() << std::endl;
   
+    if ( DryRun() )
+    {
+        query += ";Mode=remote";
+    }
+    
     TFileCollection* fc = gProof->GetDataSet(query.Data());
   
     if ( fc )

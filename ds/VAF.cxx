@@ -1187,31 +1187,38 @@ ULong64_t VAF::SumSize(const TList& list) const
 }
 
 //______________________________________________________________________________
-const char* VAF::GetHtmlPieFileName() const
+TString VAF::GetHtmlPieFileName() const
 {
   TString name;
   
-  name.Form("%s.picharts.html",fMaster.Data());
+  name.Form("%s.piecharts.html",fMaster.Data());
 
-  return name.Data();
+  return name;
 }
 
 //______________________________________________________________________________
-const char* VAF::GetHtmlTreeMapFileName() const
+TString VAF::GetHtmlTreeMapFileName() const
 {
   TString name;
   
   name.Form("%s.treemap.html",fMaster.Data());
   
-  return name.Data();
+  return name;
 }
 
 //______________________________________________________________________________
 void VAF::GenerateHTMLReports()
 {
+  std::cout << "Getting fileInfoList..." << std::endl;
   TList fileInfoList;
   GetFileInfoList(fileInfoList);
+
+  std::cout << "done." << std::endl;
+
   GenerateHTMLReports(fileInfoList);
+  
+  std::cout << "!!!!!! Remember to copy the af.css file to the " << fHtmlDir.Data()
+  << " directory !" << std::endl;
 }
 
 //______________________________________________________________________________
@@ -1220,17 +1227,25 @@ void VAF::GenerateHTMLReports(const TList& fileInfoList)
   /// Generate HTML reports for this AF, using the file info found in the fileInfoList
   
   // Make the treemap chart
+  
+  std::cout << "Generating the treemap..." << std::endl;
   GenerateHTMLTreeMap(fileInfoList);
+  std::cout << "done." << std::endl;
 
   TMap g;
+  std::cout << "Grouping fileInfoList..." << std::endl;
   GroupFileInfoList(fileInfoList,g);
+  std::cout << "done." << std::endl;
   
+
+  std::cout << "Generating pie charts..." << std::endl;
   // Make the pie charts
   GenerateHTMLPieChars(g);
-  
+  std::cout << "done." << std::endl;
+
   // and finally make the index.html
   
-  ofstream out(Form("%s/index.html",fHtmlDir.Data()));
+  std::ofstream out(Form("%s/index.html",fHtmlDir.Data()));
   
   TString html;
   
@@ -1239,13 +1254,13 @@ void VAF::GenerateHTMLReports(const TList& fileInfoList)
   html += Form("<title>%s</title>\n",fMaster.Data());
   html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"af.css\"/>\n";
   html += "<body>\n";
-  html += "<h1>Data on nansafmaster.in2p3.fr</h1>\n";
+  html += Form("<h1>Data on %s</h1>\n",fMaster.Data());
   
   html += "<ul>\n";
   
-  html += Form("<li><a href=\"%s\">Pie charts of disk usage by file type, data type, pass, etc... </a></li>\n",GetHtmlPieFileName());
+  html += Form("<li><a href=\"%s\">Pie charts of disk usage by file type, data type, pass, etc... </a></li>\n",GetHtmlPieFileName().Data());
 
-  html += Form("<li><a href=\"%s\">Tree map of disk usage</a></li>\n",GetHtmlTreeMapFileName());
+  html += Form("<li><a href=\"%s\">Tree map of disk usage</a></li>\n",GetHtmlTreeMapFileName().Data());
 
   html += "</ul>\n";
   
@@ -1253,7 +1268,10 @@ void VAF::GenerateHTMLReports(const TList& fileInfoList)
   
   html += "</body>\n";
   html += "</html>\n";
+  
   out << html.Data();
+  
+  out.close();
 }
 
 //______________________________________________________________________________
@@ -1381,7 +1399,7 @@ void VAF::GenerateHTMLTreeMap(const TList& fileInfoList)
   html += "<link rel=\"stylesheet\" type=\"text/css\" href=\"af.css\"/>\n";
   html += "<script type=\"text/javascript\" src=\"https://www.google.com/jsapi\"></script>\n";
   html += "<script type=\"text/javascript\">\n";
-  html += "google.load(\"visualization\", \"1\", {packages:[\"corechart\"]});\n";
+  html += "google.load(\"visualization\", \"1\", {packages:[\"treemap\"]});\n";
   html += "google.setOnLoadCallback(drawChart);\n";
   html += "function drawChart() {\n";
 
@@ -1390,7 +1408,7 @@ void VAF::GenerateHTMLTreeMap(const TList& fileInfoList)
   
   html += table.Data();
   
-  html += "];\n";
+  html += "]);\n";
 
   html += "var tree = new google.visualization.TreeMap(document.getElementById('chart_div'));\n";
   
@@ -1420,9 +1438,16 @@ void VAF::GenerateHTMLTreeMap(const TList& fileInfoList)
   html += "</body>\n";
   html += "</html>\n";
 
-  std::ofstream out(Form("%s/%s",fHtmlDir.Data(),GetHtmlTreeMapFileName()));
-  out << html.Data();
+  gSystem->mkdir(fHtmlDir.Data(),true);
+
+  TString outfile;
   
+  outfile.Form("%s/%s",fHtmlDir.Data(),GetHtmlTreeMapFileName().Data());
+  std::cout << outfile << std::endl;
+  
+  std::ofstream out(outfile.Data());
+  out << html.Data();
+  out.close();
 }
 
 //______________________________________________________________________________
@@ -1601,7 +1626,12 @@ void VAF::GenerateHTMLPieChars(const TMap& groups)
 
   gSystem->mkdir(fHtmlDir.Data(),true);
   
-  std::ofstream out(Form("%s/%s",fHtmlDir.Data(),GetHtmlPieFileName()));
+  TString outfile;
+  
+  outfile.Form("%s/%s",fHtmlDir.Data(),GetHtmlPieFileName().Data());
+  std::cout << outfile << std::endl;
+
+  std::ofstream out(outfile.Data());
   out << html.Data();
 
 }
@@ -1949,7 +1979,7 @@ void VAF::ShowXrdDmLog()
 {
   if (Connect("workers=1x"))
   {
-    gProof->Exec(Form(".!echo '**************************************'; hostname -a ; cat %s/xrddm.log",LogDir().Data()));
+    gProof->Exec(Form(".!echo '**************************************'; hostname -a ; cat %s/xrootd/xrddm.log",LogDir().Data()));
   }
   
 }
@@ -1979,7 +2009,7 @@ void VAF::ShowXferLog(const char* file)
 {
   if (Connect("workers=1x"))
   {
-    gProof->Exec(Form(".!hostname ; cat %s/xrddm/xrddm.log",LogDir().Data()));
+    gProof->Exec(Form(".!hostname ; cat %s/xrootd/xrddm/%s/xrddm_*.log",LogDir().Data(),file));
   }
 }
 
@@ -2013,11 +2043,46 @@ void VAF::Reset(const char* option)
 }
 
 //______________________________________________________________________________
+void VAF::ShowTransfers()
+{
+  /// Show CpMacro* transfers
+  
+  if ( Connect("workers=1x") )
+  {
+    gProof->Exec(".!hostname ; ps -edf | grep CpMacro | grep root.exe | grep -v ps | grep -v sh | wc -l");
+  }
+  
+}
+
+//______________________________________________________________________________
 void VAF::ShowConfig()
 {
-   if (Connect("masteronly"))
+   if (Connect("workers=1x"))
    {
-     gProof->Exec(Form(".!echo '********************* prf-main.cf *************';cat %s/proof/xproofd/prf-main.cf;echo '***************** xrootd.cf ********************';cat %s/xrootd/etc/xrootd/xrootd.cf;echo '***************** afdsmgrd.conf  ********************'; cat %s/proof/xproofd/afdsmgrd.conf",HomeDir().Data(),HomeDir().Data(),HomeDir().Data()));
+     std::vector<std::string> files;
+     
+     files.push_back("%s/proof/xproofd/prf-main.cf");
+     files.push_back("%s/xrootd/etc/xrootd/xrootd.cf");
+     files.push_back("%s/proof/xproofd/afdsmgrd.conf");
+     files.push_back("%s/xrootd/scripts/frm-stage-with-xrddm.sh");
+     files.push_back("/usr/local/xrddm/etc/xrddm_env.sh");
+     
+     TString cmd(".!");
+     
+     for (std::vector<std::string>::size_type i = 0; i < files.size(); ++i )
+     {
+       TString thefile;
+       
+       thefile.Form(files[i].c_str(),HomeDir().Data());
+       
+       cmd += "echo '************* ";
+       cmd += thefile;
+       cmd += " **********' ; cat ";
+       cmd += thefile;
+       cmd += ";";
+     }
+     
+     gProof->Exec(cmd.Data());
    }
 }
 

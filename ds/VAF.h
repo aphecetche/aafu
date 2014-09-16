@@ -172,6 +172,8 @@ public:
   
   void CopyFromRemote(const char* txtfile="saf.aods.txt") const;
 
+  void ShowTransfers();
+
 protected:
   
   TString GetFileType(const char* path) const;
@@ -192,9 +194,9 @@ protected:
 
   ULong64_t GenerateASCIIFileList(const char* key, const char* value, const TList& list) const;
 
-  const char* GetHtmlPieFileName() const;
+  TString GetHtmlPieFileName() const;
 
-  const char* GetHtmlTreeMapFileName() const;
+  TString GetHtmlTreeMapFileName() const;
 
 protected:
   TString fConnect; // Connect string (afmaster)
