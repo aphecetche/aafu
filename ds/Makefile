@@ -4,12 +4,16 @@ all: myaf
 
 CXX := $(shell root-config --cxx)
 
-CXXFLAGS := -g -Wall $(shell root-config --cflags)
+CXXFLAGS += -g -Wall $(shell root-config --cflags)
 
 LIBS := $(shell root-config --libs) -lProof
 
 libmyaf.so: VAF.o AFStatic.o AFDynamic.o myaf.o myafDict.o
-	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
+ifeq ($(PLATFORM),macosx)
+	$(LD) $(SOFLAGS) $@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
+else
+		$(LD) $(SOFLAGS) $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
+endif
 
 myaf: myaf.o libmyaf.so
 	$(CXX) $(CXXFLAGS) -o myaf $^ $(LIBS)
