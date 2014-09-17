@@ -1441,11 +1441,6 @@ void VAF::GenerateHTMLTreeMap(const TList& fileInfoList)
   std::ofstream out(Form("%s/%s",fHtmlDir.Data(),GetHtmlTreeMapFileName().Data()));
   out << html.Data();
   
-  outfile.Form("%s/%s",fHtmlDir.Data(),GetHtmlTreeMapFileName().Data());
-  std::cout << outfile << std::endl;
-  
-  std::ofstream out(outfile.Data());
-  out << html.Data();
   out.close();
 }
 
@@ -2247,7 +2242,7 @@ void VAF::GetFileMap(TMap& files, const char* worker)
 }
 
 //______________________________________________________________________________
-void VAF::Print(Option_t* opt) const
+void VAF::Print(Option_t* /*opt*/) const
 {
   std::cout << ClassName()
   << " talking to " << fMaster.Data() << std::endl

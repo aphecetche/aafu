@@ -35,10 +35,23 @@ namespace
   public:
     
     static Bool_t Parse(TString &uri,
-                        TString &basePath, TString &fileName, TString &anchor, TString &query,
+                        TString &basePath, TString &fileName, TString &anchor,
+                        
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,34,19)
+                        TString &query,
+#else
+                        TString& /*query*/,
+#endif
                         TString &treeName, TString &regexp)
     { std::cout << uri << std::endl;
+      
+#if ROOT_VERSION_CODE >= ROOT_VERSION(5,34,19)
+      return ParseCustomFindUri(uri,basePath,fileName,anchor,query,treeName,regexp);
+#else
       return ParseCustomFindUri(uri,basePath,fileName,anchor,treeName,regexp);
+#endif
+      
+      
     }
   };
 
@@ -263,11 +276,13 @@ void AFDynamic::ShowDataSetList(const char* query)
      TString basePath;
      TString fileName;
      TString anchor;
-     TString query;
+     TString extra;
      TString treeName;
      TString regexp;
 
-     Bool_t ok = toto::Parse(query,basePath,fileName,anchor,query,treeName,regexp);
+     TString squery(query);
+     
+     Bool_t ok = toto::Parse(squery,basePath,fileName,anchor,extra,treeName,regexp);
      
      std::cout << ok << " " << basePath << std::endl;
      

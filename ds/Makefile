@@ -10,7 +10,7 @@ LIBS := $(shell root-config --libs) -lProof
 
 libmyaf.so: VAF.o AFStatic.o AFDynamic.o myaf.o myafDict.o
 ifeq ($(PLATFORM),macosx)
-	$(LD) $(SOFLAGS) $@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
+	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
 else
 		$(LD) $(SOFLAGS) $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
 endif

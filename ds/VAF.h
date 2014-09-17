@@ -19,7 +19,7 @@ public:
   
   friend std::ostream& operator<<(std::ostream& os, const AFFileInfo& fileinfo);
   
-  void Print(Option_t* opt="") const { std::cout << (*this) << std::endl; }
+  void Print(Option_t* /*opt*/="") const { std::cout << (*this) << std::endl; }
   
 public:
   ULong64_t fSize;
