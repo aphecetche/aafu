@@ -361,7 +361,7 @@ void VAF::CompareRunLists(const char* runlist1, const char* runlist2)
 
 
 //______________________________________________________________________________
-void VAF::CopyFromRemote(const char* txtfile) const
+void VAF::CopyFromRemote(const char* txtfile)
 {
   /// Copy a list of remote urls locally, keeping the absolute path
   /// (the destination local directory must exist and be writeable, of course)

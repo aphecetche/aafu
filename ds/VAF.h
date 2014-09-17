@@ -174,7 +174,7 @@ public:
   
   ULong64_t SumSize(const TList& list) const;
   
-  void CopyFromRemote(const char* txtfile="saf.aods.txt") const;
+  static void CopyFromRemote(const char* txtfile="saf.aods.txt");
 
   void ShowTransfers();
 
