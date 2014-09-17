@@ -1,5 +1,6 @@
 body {
 font-family: Arial, sans-serif;
+padding: 1em;
 }
 
 #listjumper {
@@ -19,6 +20,41 @@ font-family: Arial, sans-serif;
 }
 
 p.footer {
-  font.size: 0.5em;
-  font.color: #3333EE;
+  font-size: 0.8em;
+  color: #CCCCCC;
+  float: right;
+}
+
+nav.mainmenu a {
+  display: block;
+  padding: 0 0 10px;
+  color: #333333;
+}
+
+pre {
+margin-left: 2em; 
+padding: 1em;
+background-color: #EEEEEE;
+overflow: auto;
+}
+
+.tocify {
+padding: 0.5em;
+border: 1px solid #EEEEEE;
+}
+
+.tocify ul {
+list-style: none;
+}
+
+.tocify ul li {
+margin: 0.2em 0;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table tr td {
+border: 1px solid #CCCCCC;
 }

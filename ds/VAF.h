@@ -147,14 +147,18 @@ public:
   void GetFileInfoListFromMap(TList& fileInfoList, const TMap& m);
 
   void GroupFileInfoList(const TList& fileInfoList, TMap& groups);
-  
-  void GenerateHTMLPieChars(const TMap& groups);
+
+  void GenerateHTMLDataRepartition(const TMap& groups);
+
+  void GenerateHTMLPieCharts(const TMap& groups);
 
   void GenerateHTMLReports();
 
   void GenerateHTMLReports(const TList& fileInfoList);
 
   void GenerateHTMLTreeMap(const TList& fileInfoList);
+
+  void GenerateHTMLDatasetList(const TMap& groups);
 
   char FileTypeToLookFor() const { return fFileTypeToLookFor; }
 
@@ -194,9 +198,21 @@ protected:
 
   ULong64_t GenerateASCIIFileList(const char* key, const char* value, const TList& list) const;
 
-  TString GetHtmlPieFileName() const;
+  TString OutputHtmlFileName(const char* type) const;
+  
+  TString FileNamePieCharts() const { return OutputHtmlFileName("piecharts"); }
+  TString FileNameTreeMap() const { return OutputHtmlFileName("treemap"); }
+  TString FileNameDataSetList() const { return OutputHtmlFileName("datasetlist"); }
+  TString FileNameDataRepartition() const { return OutputHtmlFileName("datarepartition"); }
 
-  TString GetHtmlTreeMapFileName() const;
+  TString CSS() const;
+
+  TString JSGoogleChart(const char* chartPackage="corechart") const;
+  TString JSListJumper() const;
+  TString JSTOC() const;
+
+  TString HTMLHeader(const char* title, const TString& css, const TString& js) const;
+  TString HTMLFooter(Bool_t withJS=kFALSE) const;
 
 protected:
   TString fConnect; // Connect string (afmaster)
