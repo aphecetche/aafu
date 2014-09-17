@@ -1438,9 +1438,8 @@ void VAF::GenerateHTMLTreeMap(const TList& fileInfoList)
   html += "</body>\n";
   html += "</html>\n";
 
-  gSystem->mkdir(fHtmlDir.Data(),true);
-
-  TString outfile;
+  std::ofstream out(Form("%s/%s",fHtmlDir.Data(),GetHtmlTreeMapFileName().Data()));
+  out << html.Data();
   
   outfile.Form("%s/%s",fHtmlDir.Data(),GetHtmlTreeMapFileName().Data());
   std::cout << outfile << std::endl;
@@ -1626,12 +1625,7 @@ void VAF::GenerateHTMLPieChars(const TMap& groups)
 
   gSystem->mkdir(fHtmlDir.Data(),true);
   
-  TString outfile;
-  
-  outfile.Form("%s/%s",fHtmlDir.Data(),GetHtmlPieFileName().Data());
-  std::cout << outfile << std::endl;
-
-  std::ofstream out(outfile.Data());
+  std::ofstream out(Form("%s/%s",fHtmlDir.Data(),GetHtmlPieFileName().Data()));
   out << html.Data();
 
 }
@@ -2260,8 +2254,9 @@ void VAF::Print(Option_t* opt) const
   << " LogDir         :  " << fLogDir.Data() << std::endl
   << " HomeDir        :  " << fHomeDir.Data() << std::endl
   << " FileType       :  " << FileTypeToLookFor() << std::endl
-  << " DynamicDataSet : " << fIsDynamicDataSet << std::endl;
-  
+  << " DynamicDataSet : " << fIsDynamicDataSet << std::endl
+  << " HtmlDir        : " << fHtmlDir << std::endl;
+
   if ( fDryRun )
   {
     std::cout << "Currently in dry run mode " << std::endl;

@@ -22,7 +22,7 @@ public:
   void Print(Option_t* opt="") const { std::cout << (*this) << std::endl; }
   
 public:
-  Long64_t fSize;
+  ULong64_t fSize;
   TDatime fTime;
   TString fFullPath;
   TString fHostName;

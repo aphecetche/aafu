@@ -38,7 +38,7 @@ namespace
                         TString &basePath, TString &fileName, TString &anchor, TString &query,
                         TString &treeName, TString &regexp)
     { std::cout << uri << std::endl;
-      return ParseCustomFindUri(uri,basePath,fileName,anchor,query,treeName,regexp);
+      return ParseCustomFindUri(uri,basePath,fileName,anchor,treeName,regexp);
     }
   };
 
