@@ -1,0 +1,14 @@
+all: webmaker
+
+%.o: %.cxx %.h
+	$(CXX) -g -Wall -c $< -o $@
+
+webmaker.o: webmaker.cxx
+	$(CXX) -g -Wall -c $< -o $@
+    
+webmaker: AFWebMaker.o webmaker.o
+	$(CXX) -g $^ -o $@
+
+install:
+	install webmaker $(DESTDIR)/webmaker
+	install -m 644 *.css *.js $(DESTDIR)/
