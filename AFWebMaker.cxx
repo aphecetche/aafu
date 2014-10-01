@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <cassert>
 #include <sys/stat.h>
+#include <cstring>
+#include <cstdlib>
 
 namespace {
   
@@ -265,7 +267,7 @@ void AFWebMaker::FillFileInfoMap(const std::string& workerFileName)
   fullpath += "/";
   fullpath += workerFileName;
   
-  std::ifstream in(fullpath);
+  std::ifstream in(fullpath.c_str());
   std::string line;
   
   std::vector<std::string> lines;
@@ -315,7 +317,7 @@ AFWebMaker::AFFileSize AFWebMaker::GenerateASCIIFileList(const std::string& key,
   filename += value;
   filename += ".txt";
   
-  std::ofstream out(filename);
+  std::ofstream out(filename.c_str());
   
   for ( AFFileInfoList::const_iterator it = list.begin(); it != list.end(); ++it )
   {
@@ -442,7 +444,7 @@ void AFWebMaker::GenerateDataRepartition()
   
   html += HTMLFooter();
   
-  std::ofstream out(FileNameDataRepartition());
+  std::ofstream out(FileNameDataRepartition().c_str());
   out << html;
   out.close();
 }
@@ -452,7 +454,7 @@ void AFWebMaker::GenerateDatasetList()
 {
   GroupMap();
   
-  std::ofstream outfile(FileNameDataSetList());
+  std::ofstream outfile(FileNameDataSetList().c_str());
   
   std::string lines;
   
@@ -635,7 +637,7 @@ void AFWebMaker::GeneratePieCharts()
   
   html += HTMLFooter();
   
-  std::ofstream out(FileNamePieCharts());
+  std::ofstream out(FileNamePieCharts().c_str());
   out << html;
   out.close();
 }
@@ -856,7 +858,7 @@ void AFWebMaker::GenerateTreeMap()
   
   html += HTMLFooter();
   
-  std::ofstream out(FileNameTreeMap());
+  std::ofstream out(FileNameTreeMap().c_str());
   out << html.c_str();
   out.close();
 }
@@ -881,7 +883,7 @@ void AFWebMaker::GenerateUserManual(const std::string& mdfile)
   
   if (system(cmd.c_str())) return;
     
-  std::ifstream in(tmpFile);
+  std::ifstream in(tmpFile.c_str());
     
   std::string html;
   
