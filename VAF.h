@@ -11,26 +11,6 @@ class TMap;
 #include "TDatime.h"
 #include "Riostream.h"
 
-class AFFileInfo : public TNamed
-{
-public:
-  AFFileInfo(): TNamed(), fSize(0), fTime(), fFullPath("") {}
-  AFFileInfo(const char* lsline, const char* prefix, const char* hostname);
-  
-  friend std::ostream& operator<<(std::ostream& os, const AFFileInfo& fileinfo);
-  
-  void Print(Option_t* /*opt*/="") const { std::cout << (*this) << std::endl; }
-  
-public:
-  ULong64_t fSize;
-  TDatime fTime;
-  TString fFullPath;
-  TString fHostName;
-  
-  ClassDef(AFFileInfo,2)
-};
-
-
 ///
 /// Interface for class dealing with analysis facility datasets
 ///
@@ -66,8 +46,6 @@ public:
   TString HomeDir() const { return fHomeDir; }
   
   TString LogDir() const { return fLogDir; }
-  
-  void GetFileMap(TMap& files, const char* worker="");
   
   virtual void CreateDataSets(const std::vector<int>& runs,
                               const char* dataType = "aodmuon",
@@ -118,11 +96,7 @@ public:
   
   void UseFilter(const char* filtername) { fFilterName=filtername; }
 
-  void AnalyzeFileMap(const TMap& fileMap, const char* deletePath="");
-
   virtual void GetDataSetList(TList& list, const char* path="/*/*/*");
-  
-  void SetAnalyzeDeleteScriptName(const char* filename) { fAnalyzeDeleteScriptName = filename; }
   
   void ShowStagerLog();
   
@@ -142,24 +116,6 @@ public:
   
   void ShowConfig();
   
-  void GetFileInfoList(TList& fileInfoList);
- 
-  void GetFileInfoListFromMap(TList& fileInfoList, const TMap& m);
-
-  void GroupFileInfoList(const TList& fileInfoList, TMap& groups);
-
-  void GenerateHTMLDataRepartition(const TMap& groups);
-
-  void GenerateHTMLPieCharts(const TMap& groups);
-
-  void GenerateHTMLReports();
-
-  void GenerateHTMLReports(const TList& fileInfoList);
-
-  void GenerateHTMLTreeMap(const TList& fileInfoList);
-
-  void GenerateHTMLDatasetList(const TMap& groups);
-
   char FileTypeToLookFor() const { return fFileTypeToLookFor; }
 
   void SetFileTypeToLookFor(char type) { fFileTypeToLookFor=type;  }
@@ -168,23 +124,19 @@ public:
 
   Bool_t Connect(const char* option="masteronly");
   
-  void WriteFileInfoList(const char* outputfile="");
-
-  void WriteFileMap(const char* outputfile="");
-  
-  ULong64_t SumSize(const TList& list) const;
-  
   static void CopyFromRemote(const char* txtfile="saf.aods.txt");
 
   void ShowTransfers();
 
-protected:
+  void GenerateReports();
   
+protected:
+
+  TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;
+
   TString GetFileType(const char* path) const;
 
   TString GetStringFromExec(const char* cmd, const char* ord="*");
-
-  TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;
 
   void GetSearchAndBaseName(Int_t runNumber, const char* sbasename, const char* what, const char* dataType,
                             const char* esdpass, Int_t aodPassNumber,
@@ -192,28 +144,6 @@ protected:
 
   void ReadIntegers(const char* filename, std::vector<int>& integers);
   
-  Int_t DecodePath(const char* path, TString& period, TString& esdPass, TString& aodPass, Int_t& runNumber, TString& user) const;
-
-  void AddFileToGroup(TMap& groups, const TString& file, const AFFileInfo& fileInfo);
-
-  ULong64_t GenerateASCIIFileList(const char* key, const char* value, const TList& list) const;
-
-  TString OutputHtmlFileName(const char* type) const;
-  
-  TString FileNamePieCharts() const { return OutputHtmlFileName("piecharts"); }
-  TString FileNameTreeMap() const { return OutputHtmlFileName("treemap"); }
-  TString FileNameDataSetList() const { return OutputHtmlFileName("datasetlist"); }
-  TString FileNameDataRepartition() const { return OutputHtmlFileName("datarepartition"); }
-
-  TString CSS() const;
-
-  TString JSGoogleChart(const char* chartPackage="corechart") const;
-  TString JSListJumper() const;
-  TString JSTOC() const;
-
-  TString HTMLHeader(const char* title, const TString& css, const TString& js) const;
-  TString HTMLFooter(Bool_t withJS=kFALSE) const;
-
 protected:
   TString fConnect; // Connect string (afmaster)
   Bool_t fDryRun; // whether to do real things or just show what would be done
@@ -222,15 +152,12 @@ protected:
   Bool_t fSimpleRunNumbers; // true if run number are not with format %09d but %d instead
   TString fFilterName; // filter name (default:"")
   TString fMaster; // hostname of the master
-  TString fAnalyzeDeleteScriptName; // name of the delete script generated (optionaly) by AnalyzeFileList method
   Bool_t fIsDynamicDataSet; // static of dynamic datasets ?
   TString fHomeDir; // home dir of the proof-aaf installation
   TString fLogDir; // log dir of the proof-aaf installation
-  TString fTreeMapTemplateHtmlFileName;
-  Char_t fFileTypeToLookFor; // file type (f for file or l for link) to look for in GetFileInfoList
-  TString fHtmlDir; // directory for HTML report(s)
+  Char_t fFileTypeToLookFor; // file type (f for file or l for link) to look for in GenerateReports
   
-  ClassDef(VAF,8)
+  ClassDef(VAF,9)
 };
 
 #endif

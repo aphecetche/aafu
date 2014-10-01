@@ -1,6 +1,6 @@
 include $(ROOTSYS)/etc/Makefile.arch
 
-all: myaf
+all: myaf webmaker
 
 CXX := $(shell root-config --cxx)
 
@@ -8,7 +8,7 @@ CXXFLAGS += -g -Wall $(shell root-config --cflags)
 
 LIBS := $(shell root-config --libs) -lProof
 
-libmyaf.so: VAF.o AFStatic.o AFDynamic.o myaf.o myafDict.o
+libmyaf.so: VAF.o AFStatic.o AFDynamic.o myaf.o myafDict.o AFWebMaker.o
 ifeq ($(PLATFORM),macosx)
 	$(LD) $(SOFLAGS)$@ $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
 else
@@ -28,6 +28,13 @@ myafDict.cxx: VAF.h AFStatic.h AFDynamic.h myafLinkDef.h
 %.o: %.cxx %.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+webmaker.o: webmaker.cxx
+# no root dependency in the flags here
+	$(CXX) -g -Wall -c $< -o $@
+    
+webmaker: AFWebMaker.o webmaker.o
+	$(CXX) -g $^ -o $@
+
 clean:
-	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM treemap.html
+	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM *.html webmaker
 
