@@ -991,7 +991,7 @@ void AFWebMaker::GetWorkers(std::vector<std::string>& workers) const
   while ( ( de =readdir(dirp) ) )
   {
     if ( ! strncmp(de->d_name,fFileListPattern.c_str(),fFileListPattern.size())
-        && strstr(de->d_name,".txt") )
+        && strstr(de->d_name,".list") )
     {
       workers.push_back(de->d_name);
     }
