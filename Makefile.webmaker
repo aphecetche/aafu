@@ -11,4 +11,4 @@ webmaker: AFWebMaker.o webmaker.o
 
 install:
 	install webmaker $(DESTDIR)/webmaker
-	install -m 644 *.css *.js $(DESTDIR)/
+	install -m 644 *.css *.js *.html $(DESTDIR)/

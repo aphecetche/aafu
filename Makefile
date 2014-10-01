@@ -42,7 +42,7 @@ RPMVERSION=1.0
 
 archive:
 	mkdir aafu-webmaker-$(RPMVERSION)
-	cp  AFWebMaker.cxx AFWebMaker.h webmaker.cxx  *.css *.js aafu-webmaker-$(RPMVERSION)
+	cp usermanual.html AFWebMaker.cxx AFWebMaker.h webmaker.cxx  *.css *.js aafu-webmaker-$(RPMVERSION)
 	cp Makefile.webmaker aafu-webmaker-$(RPMVERSION)/Makefile
 	tar zcvf aafu-webmaker-$(RPMVERSION).tar.gz aafu-webmaker-$(RPMVERSION)
 	rm -rf aafu-webmaker-$(RPMVERSION)/
