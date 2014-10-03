@@ -36,7 +36,7 @@ webmaker: AFWebMaker.o webmaker.o
 	$(CXX) -g $^ -o $@
 
 clean:
-	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM *.html webmaker
+	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM webmaker
 
 RPMVERSION=1.0
 
