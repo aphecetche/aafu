@@ -10,6 +10,11 @@ int main(int argc, char* argv[])
   std::string mdfile;
   int debug(0);
   
+  if ( argc == 1 )
+  {
+    std::cout << "Usage : webmaker --directory [where to find the files] --pattern [starting part of the filenames to look for] --prefix [prefix to strip from the fullpath of the results of the find command] (--debug) (--debug) (--debug) (--debug)" << std::endl;
+    
+  }
   for ( int i = 1; i < argc; ++i)
   {
     if ( !strcmp(argv[i],"--directory") )
