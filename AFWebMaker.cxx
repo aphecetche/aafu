@@ -788,6 +788,12 @@ void AFWebMaker::GenerateTreeMap()
     
     std::string truncatedPath;
     
+    if ( tokens.size() < 3 )
+    {
+      WARNING() << "this path will not be taken into account (too short) : " << fileInfo.fFullPath << std::endl;
+      continue;
+    }
+    
     for ( std::vector<std::string>::size_type i = 0; i < tokens.size()-2; ++i )
     {
       truncatedPath += "/";
