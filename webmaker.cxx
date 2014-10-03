@@ -1,6 +1,7 @@
 #include "AFWebMaker.h"
 #include <iostream>
 #include "dirent.h"
+#include <cstring>
 
 int main(int argc, char* argv[])
 {
