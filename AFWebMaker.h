@@ -37,7 +37,8 @@ public:
   typedef std::list<AFFileInfo> AFFileInfoList;
   typedef std::map<std::string, AFFileInfoList*> AFFileInfoMap;
   
-  AFWebMaker(const std::string& topdir, const std::string& fileListPattern, const std::string& prefix);
+  AFWebMaker(const std::string& topdir, const std::string& fileListPattern, const std::string& prefix,
+             int debuglevel=0);
   ~AFWebMaker();
   
   void FillFileInfoMap(const std::vector<std::string>& lines, const std::string& workerName);
@@ -111,6 +112,7 @@ private:
   AFFileInfoMap fFileInfoMap;
   AFFileInfoList fFileInfoList;
   AFFileInfoMap fGroupMap;
+  int fDebugLevel;
 };
 
 #endif

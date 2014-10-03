@@ -488,7 +488,7 @@ void VAF::GenerateReports()
   
   delete a;
   
-  AFWebMaker wm("","",u.GetFile());
+  AFWebMaker wm("","",u.GetFile(),0);
   
   for ( Int_t i = 0; i < nworkers; ++i )
   {

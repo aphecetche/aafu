@@ -10,6 +10,12 @@
 #include <cstring>
 #include <cstdlib>
 
+#define WARNING() std::cout << "WARNING " << __FILE__ << ":" << __LINE__ << " "
+
+#define ERROR() std::cerr << "ERROR " << __FILE__ << ":" << __LINE__ << " "
+
+#define DEBUG(level) if ( fDebugLevel > level ) std::cout <<  "DEBUG " << __FILE__ << ":" << __LINE__ << " "
+
 namespace {
   
   double byte2GB(1024*1024*1024);
@@ -99,14 +105,24 @@ std::ostream& operator<<(std::ostream& os, const AFWebMaker::AFFileInfo& fileinf
 }
 
 //_________________________________________________________________________________________________
-AFWebMaker::AFWebMaker(const std::string& topdir, const std::string& pattern, const std::string& prefix) :
-fTopDir(topdir), fFileListPattern(pattern), fPrefix(prefix)
+//
+//
+//
+//_________________________________________________________________________________________________
+
+//_________________________________________________________________________________________________
+AFWebMaker::AFWebMaker(const std::string& topdir, const std::string& pattern,
+                       const std::string& prefix, int debuglevel) :
+fTopDir(topdir), fFileListPattern(pattern), fPrefix(prefix), fDebugLevel(debuglevel)
 {
   char hostname[1024];
   
   gethostname(hostname,1023);
 
   fHostName = hostname;
+  
+  DEBUG(0) << "(on host " << fHostName << ") : Will look for files starting with " << fFileListPattern
+    << " in directory " << fTopDir << " and will strip " << fPrefix << " from the paths found in those files" << std::endl;
 }
 
 //_________________________________________________________________________________________________
@@ -133,6 +149,7 @@ void AFWebMaker::AddFileToGroup(const std::string& file, const AFWebMaker::AFFil
   
   if ( !fGroupMap.count(file) )
   {
+    DEBUG(3) << " Creating new list for file " << file << std::endl;
     list = new AFFileInfoList;
     fGroupMap[file] = list;
   }
@@ -210,29 +227,34 @@ int AFWebMaker::DecodePath(const std::string& path, std::string& period,
     std::vector<std::string> a;
     Tokenize(dir,a,'/');
     user = a[4];
-    rv=0;
+    rv=0; // no further check on esdpass etc for user land...
   }
-  
-  if (period.size()==0 && !strstr(path.c_str(),"/alice/cern.ch/user") )
+  else
   {
-    // must have a period for anything not user land
-    rv = -1;
-  }
-  
-  if ( esdPass.size()== 0 && !strstr(path.c_str(),"/alice/data") && !strstr(path.c_str(),"/raw/"))
-  {
-    if ( aodPass.size() == 0 )
+    if (period.size()==0)
     {
-      // must find the esd pass and/or the aod pass for official data that is not raw data !
-      rv = -2;
+      // must have a period for anything not user land
+      rv = -1;
+    }
+    
+    if ( esdPass.size()== 0 && !strstr(path.c_str(),"/alice/data") && !strstr(path.c_str(),"/raw/"))
+    {
+      if ( aodPass.size() == 0 && !strstr(path.c_str(),"/alice/sim") )
+      {
+        // must find the esd pass and/or the aod pass for official data that is not raw data !
+        rv = -2;
+      }
     }
   }
   
   if ( rv < 0 )
   {
-    std::cout << "rv=" << rv << "path=" << path << std::endl;
-    std::cout << "period=" << period << " esdpass=" << esdPass << " aodpass=" << aodPass
-    << " runnumber=" << runNumber << " user=" << user << std::endl;
+//    if ( !strstr(path.c_str(),"archive.zip") ) // silence warning for archives
+    {
+      WARNING() << "rv=" << rv << " for path=" << path << std::endl;
+      WARNING() << "period=" << period << " esdpass=" << esdPass << " aodpass=" << aodPass
+      << " runnumber=" << runNumber << " user=" << user << std::endl;
+    }
   }
   
   return rv;
@@ -241,6 +263,8 @@ int AFWebMaker::DecodePath(const std::string& path, std::string& period,
 //_________________________________________________________________________________________________
 AFWebMaker::AFFileInfoList& AFWebMaker::FileInfoList()
 {
+  DEBUG(2) << "FileInfoList " << std::endl;
+  
   if ( fFileInfoList.empty() )
   {
     GetFileInfoListFromMap();
@@ -251,6 +275,8 @@ AFWebMaker::AFFileInfoList& AFWebMaker::FileInfoList()
 //_________________________________________________________________________________________________
 void AFWebMaker::FillFileInfoMap(const std::string& workerFileName)
 {
+  DEBUG(2) << "FillFileInfoMap(workerFileName=" << workerFileName << ")" << std::endl;
+  
   std::istringstream sin(workerFileName);
   
   std::string worker;
@@ -277,6 +303,10 @@ void AFWebMaker::FillFileInfoMap(const std::string& workerFileName)
     lines.push_back(line);
   }
   
+  if ( fDebugLevel > 2 )
+  {
+    DEBUG(2) << " read " << lines.size() << " lines from file " << fullpath << std::endl;
+  }
   in.close();
   
   FillFileInfoMap(lines,worker);
@@ -285,6 +315,8 @@ void AFWebMaker::FillFileInfoMap(const std::string& workerFileName)
 //_________________________________________________________________________________________________
 void AFWebMaker::FillFileInfoMap(const std::vector<std::string>& lines, const std::string& workerName)
 {
+  DEBUG(2) << "FillFileInfoMap(lines," << workerName << ")" << std::endl;
+
   AFFileInfoList* fileList = new AFFileInfoList;
   
   for ( std::vector<std::string>::size_type i = 0; i < lines.size(); ++i )
@@ -294,14 +326,31 @@ void AFWebMaker::FillFileInfoMap(const std::vector<std::string>& lines, const st
   }
   
   fFileInfoMap[workerName] = fileList;
+  
+  if ( fDebugLevel > 3 )
+  {
+    for ( AFFileInfoList::const_iterator it = fileList->begin(); it != fileList->end(); ++it )
+    {
+      DEBUG(3) << (*it) << std::endl;
+    }
+  }
 }
 
 //_________________________________________________________________________________________________
 AFWebMaker::AFFileInfoMap& AFWebMaker::FileInfoMap()
 {
+  DEBUG(2) << "FileInfoMap" << std::endl;
+  
   if ( fFileInfoMap.empty() )
   {
     GetFileInfoMap();
+    if ( fDebugLevel > 2 )
+    {
+      for ( AFFileInfoMap::const_iterator it = fFileInfoMap.begin(); it != fFileInfoMap.end(); ++it )
+      {
+        DEBUG(2) << "worker=" << it->first << std::endl;
+      }
+    }
   }
   return fFileInfoMap;
 }
@@ -309,6 +358,8 @@ AFWebMaker::AFFileInfoMap& AFWebMaker::FileInfoMap()
 //______________________________________________________________________________
 AFWebMaker::AFFileSize AFWebMaker::GenerateASCIIFileList(const std::string& key, const std::string& value, const AFFileInfoList& list) const
 {
+  DEBUG(2) << "GenerateASCIIFileList("<< key << "," << value << ",list)" << std::endl;
+  
   std::string filename(fHostName);
   
   filename += ".";
@@ -344,6 +395,8 @@ AFWebMaker::AFFileSize AFWebMaker::GenerateASCIIFileList(const std::string& key,
 //______________________________________________________________________________
 void AFWebMaker::GenerateDataRepartition()
 {
+  DEBUG(2) << "GenerateDataRepartition" << std::endl;
+
   GroupMap();
   
   std::string table;
@@ -356,6 +409,8 @@ void AFWebMaker::GenerateDataRepartition()
   
   for ( AFFileInfoMap::const_iterator it = fGroupMap.begin(); it != fGroupMap.end(); ++it )
   {
+    DEBUG(3) << " key " << it->first << std::endl;
+    
     if ( !BeginsWith(it->first,"SERVER") ) continue;
     
     AFFileInfoList* list = it->second;
@@ -452,6 +507,8 @@ void AFWebMaker::GenerateDataRepartition()
 //______________________________________________________________________________
 void AFWebMaker::GenerateDatasetList()
 {
+  DEBUG(2) << "GenerateDatasetList" << std::endl;
+  
   GroupMap();
   
   std::ofstream outfile(FileNameDataSetList().c_str());
@@ -488,6 +545,8 @@ void AFWebMaker::GenerateDatasetList()
 //______________________________________________________________________________
 void AFWebMaker::GeneratePieCharts()
 {
+  DEBUG(2) << "GeneratePieCharts" << std::endl;
+  
   GroupMap(); // insure we have something to work with
   
   std::map<std::string,std::string> tables;
@@ -603,6 +662,7 @@ void AFWebMaker::GeneratePieCharts()
     js += fHostName;
     js += ".";
     js += it->first;
+    js += ".";
     js += "' + data";
     js += it->first;
     js += ".getValue(selectedItem.row,0) + '.txt';\n";
@@ -645,6 +705,15 @@ void AFWebMaker::GeneratePieCharts()
 //_________________________________________________________________________________________________
 void AFWebMaker::GenerateReports()
 {
+  DEBUG(2) << "GenerateReports" << std::endl;
+  
+  AFFileInfoList& list = FileInfoList();
+  
+  if ( list.empty() )
+  {
+    return;
+  }
+  
   GenerateTreeMap();
   
   GenerateDatasetList();
@@ -702,6 +771,8 @@ void AFWebMaker::GenerateReports()
 //______________________________________________________________________________
 void AFWebMaker::GenerateTreeMap()
 {
+  DEBUG(2) << "GenerateTreeMap" << std::endl;
+  
   AFFileInfoMap m;
   
   AFFileInfoList& fil = FileInfoList();
@@ -787,6 +858,13 @@ void AFWebMaker::GenerateTreeMap()
 
   AFFileInfoList* list = parentMap["/alice"];
   
+  if (!list)
+  {
+    std::cerr << __FILE__ << ":" << __LINE__ << " Could not find any path starting at /alice !!! That's highly unlikely. Check the files with the file stats."
+    << std::endl;
+    return;
+  }
+  
   AFFileSize totalSize = SumSize(*list);
   
   char lineBuffer[1024];
@@ -866,6 +944,8 @@ void AFWebMaker::GenerateTreeMap()
 //_________________________________________________________________________________________________
 void AFWebMaker::GenerateUserManual(const std::string& mdfile)
 {
+  DEBUG(2) << "GenerateUserManual" << std::endl;
+  
   if ( system("which pandoc") )
   {
     std::cout << "Cannot convert .md to .html as you do not seem to have pandoc installed"
@@ -909,6 +989,8 @@ void AFWebMaker::GenerateUserManual(const std::string& mdfile)
 //_________________________________________________________________________________________________
 void AFWebMaker::GetFileInfoListFromMap()
 {
+  DEBUG(2) << "GetFileInfoListFromMap" << std::endl;
+
   AFFileInfoMap& fim = FileInfoMap();
   AFFileInfoList& fil = fFileInfoList;
   
@@ -920,11 +1002,15 @@ void AFWebMaker::GetFileInfoListFromMap()
       fil.push_back(AFFileInfo(*fit));
     }
   }
+  
+  DEBUG(1) << "Found a grand total of " << fil.size() << " files" << std::endl;
 }
 
 //_________________________________________________________________________________________________
 void AFWebMaker::GetFileInfoMap()
 {
+  DEBUG(2) << "GetFileInfoMap " << std::endl;
+
   std::vector<std::string> workers;
   
   GetWorkers(workers);
@@ -978,10 +1064,11 @@ std::string AFWebMaker::GetFileType(const std::string& path) const
   return file;
 }
 
-
 //_________________________________________________________________________________________________
 void AFWebMaker::GetWorkers(std::vector<std::string>& workers) const
 {
+  DEBUG(2) << "GetWorkers" << std::endl;
+
   workers.clear();
   
   DIR* dirp = opendir(fTopDir.c_str());
@@ -990,20 +1077,46 @@ void AFWebMaker::GetWorkers(std::vector<std::string>& workers) const
   
   while ( ( de =readdir(dirp) ) )
   {
+    DEBUG(2) <<  "GetWorkers on file " << de->d_name << std::endl;
+    
     if ( ! strncmp(de->d_name,fFileListPattern.c_str(),fFileListPattern.size())
         && strstr(de->d_name,".list") )
     {
+      if ( fDebugLevel > 0 )
+      {
+        DEBUG(0) << "Found a file for worker " << de->d_name << std::endl;
+      }
       workers.push_back(de->d_name);
     }
   }
-  closedir(dirp);
   
+  if ( workers.empty() )
+  {
+    ERROR() << " Could not find any file matching the required pattern [ " << fFileListPattern << "*.list ]"
+          << " in directory " << fTopDir << ". Please check !" << std::endl;
+  }
+  else
+  {
+      DEBUG(0) << " Found " << workers.size() << " worker files to be dealt with" << std::endl;
+      if ( fDebugLevel > 1 )
+      {
+        for ( std::vector<std::string>::size_type i = 0; i < workers.size(); ++i )
+        {
+          DEBUG(1) << workers[i] << std::endl;
+        }
+      }
+  }
+  closedir(dirp);
 }
 
 //______________________________________________________________________________
 void AFWebMaker::GroupFileInfoList()
 {
+  DEBUG(2) << "GroupFileInfoList " << std::endl;
+  
   FileInfoList(); // insure we have something to work with
+  
+  DEBUG(2) << " in GroupFileInfoList # of entries in fFileInfoList is " << fFileInfoList.size() << std::endl;
   
   for ( AFFileInfoList::const_iterator it = fFileInfoList.begin(); it != fFileInfoList.end(); ++it )
   {
@@ -1039,7 +1152,7 @@ void AFWebMaker::GroupFileInfoList()
     {
       AddFileToGroup("DATATYPE:USER",fileInfo);
     }
-    
+
     // Now group by period / esdPass / aodPass
     
     std::string period("");
@@ -1052,8 +1165,7 @@ void AFWebMaker::GroupFileInfoList()
     
     if (rv<0)
     {
-      std::cout << "Could not find period/esdpass/aodpass/runnumber for path " << fileInfo.fFullPath << std::endl;
-      return;//FIXME: remove this which is just for debug !
+      WARNING() << "Could not find period/esdpass/aodpass/runnumber for path " << fileInfo.fFullPath << std::endl;
       continue;
     }
     
@@ -1137,6 +1249,8 @@ void AFWebMaker::GroupFileInfoList()
 //______________________________________________________________________________
 AFWebMaker::AFFileInfoMap& AFWebMaker::GroupMap()
 {
+  DEBUG(1) << "GroupMap " << std::endl;
+
   if ( fGroupMap.empty() )
   {
     GroupFileInfoList();

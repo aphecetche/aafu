@@ -1,4 +1,6 @@
 #include "AFWebMaker.h"
+#include <iostream>
+#include "dirent.h"
 
 int main(int argc, char* argv[])
 {
@@ -6,25 +8,47 @@ int main(int argc, char* argv[])
   std::string prefix("/data");
   std::string pattern("nan");
   std::string mdfile;
+  int debug(0);
   
-  if (argc>1) {
-    topdir = argv[1];
+  for ( int i = 1; i < argc; ++i)
+  {
+    if ( !strcmp(argv[i],"--directory") )
+    {
+      topdir = argv[i+1];
+      ++i;
+    }
+
+    else if ( !strcmp(argv[i],"--pattern") )
+    {
+      pattern = argv[i+1];
+      ++i;
+    }
+
+    else if ( !strcmp(argv[i],"--prefix") )
+    {
+      prefix = argv[i+1];
+      ++i;
+    }
+
+    else if ( !strcmp(argv[i],"--debug") )
+    {
+      debug++;
+    }
+    
+    else {
+      std::cerr << "Unknown option " << argv[i] << std::endl;
+    }
+  }
+  
+  DIR* dirp = opendir(topdir.c_str());
+  if (!dirp)
+  {
+    std::cerr << "Could not access directory " << topdir << std::endl;
+    return -1;
   }
 
-  if (argc>2) {
-    pattern = argv[2];
-  }
-
-  if (argc>3) {
-    prefix = argv[3];
-  }
-
-  if (argc>4) {
-    mdfile = argv[4];
-  }
-
-  AFWebMaker wm(topdir,pattern,prefix);
-
+  AFWebMaker wm(topdir,pattern,prefix,debug);
+  
   wm.GenerateReports();
   
   if ( mdfile.size() > 0 )
