@@ -24,7 +24,11 @@ $(function() { $("#toc").tocify({ context: "body", selectors: "h2,h3,h4", showEf
 <li>&quot;workers=8x&quot; to get 8 workers per machine (try not to go over this)</li>
 <li>&quot;masteronly&quot; to skip the connection to the proof workers and start a conversation only with the master (it's faster to start, and is more than enough for everything related to staging, for instance)</li>
 </ul>
-<p>Please remember that you must have a valid alien token before attempting the connection.</p>
+<p>Please remember that you must have a valid alien token before attempting the connection and that you must have the following line in your <code>.rootrc</code>:</p>
+<pre><code>XSec.GSI.DelegProxy: 2</code></pre>
+<p>If you do not want to touch your <code>.rootrc</code> you can also do :</p>
+<pre><code>root[] gEnv-&gt;SetValue(&quot;XSec.GSI.DelegProxy&quot;, &quot;2&quot;);</code></pre>
+<p>before connecting (each time).</p>
 <p>Compared to SAF1 though, the big news in SAF2 lies in how the datasets are dealt with.</p>
 <p>SAF2 now uses what is called dynamic datasets (SAF1 was using static ones). This has consequences on how datasets are staged and used.</p>
 <p>A dynamic dataset is a query (string) to the alien catalog, e.g.</p>
@@ -35,7 +39,9 @@ $(function() { $("#toc").tocify({ context: "body", selectors: "h2,h3,h4", showEf
 <pre><code>mgr-&gt;StartAnalysis(&quot;proof&quot;,&quot;Find;FileName=AliAOD.Muons.root;BasePath=/alice/data/2011/LHC11h/000169838/ESDs/pass2_muon/AOD119&quot;)</code></pre>
 <p>While it's quite a bit longer to type for the end user, the dynamic datasets solve a number of issues we had with static ones. Basically all the interaction with the stager daemon was getting longer the more datasets there were (SAF1 had about 5000 datasets) , making the whole system impossible to scale. Worse, the stager daemon was continuously scanning <em>all</em> the datasets... With dynamic datasets, the interaction with the stager daemon is limited to the datasets that are <em>being</em> staged. Once staging is done no further interaction is needed with the stager daemon.</p>
 <h2 id="available-data-on-saf2">Available data on SAF2</h2>
-<p>Discovering what data is already present on SAF2 is a bit less easy than on SAF1 (where you could do <code>gProof-&gt;ShowDataSets(&quot;/*/*/*&quot;)</code> A script will be put in place to generate, at a given frequency (once per day, per week ?), <a href="http://cern.ch/laurent.aphecetche/saf2" title="saf disk reports">HTML reports</a> of the data sitting on SAF2 disks. When the data you want to use is not available, you'll have to request a staging for it. You can do it all by yourself (see next sections) or ask for help (send a mail to alice-saf at subatech dot in2p3 dot fr).</p>
+<p>Discovering what data is already present on SAF2 is a bit less easy than on SAF1 (where you could do <code>gProof-&gt;ShowDataSets(&quot;/*/*/*&quot;)</code></p>
+<p>Instead, a script is in place to generate, at a given frequency (once per day), <a href="https://nansafmaster2.in2p3.fr" title="saf disk reports">HTML reports</a> of the data sitting on SAF2 disks.</p>
+<p>When the data you want to use is not available, you'll have to request a staging for it. You can do it all by yourself (see next sections) or ask for help (send a mail to alice-saf at subatech dot in2p3 dot fr).</p>
 <h2 id="staging-datasets">Staging datasets</h2>
 <h3 id="requesting-the-staging">Requesting the staging</h3>
 <p>The actual staging request can be performed in two ways (basic and libmyaf), see the next two sections below. In both cases, please assess first the total size of the data you request. Then use common sense as to which size is reasonable or not, baring in mind that the total available storage space on SAF2 is about 29 TB.</p>
@@ -47,7 +53,7 @@ $(function() { $("#toc").tocify({ context: "body", selectors: "h2,h3,h4", showEf
 <pre><code>&gt; root
 TProof::Mgr(&quot;nansafmaster2&quot;)-&gt;ShowROOTVersions();
 .q</code></pre>
-<p>Mind that all interactions with <code>TProof::Mgr</code> must be done outside any Proof session.</p>
+<p>Mind that all interactions with <code>TProof::Mgr</code> must be done outside any Proof session. Please also remember to change the Root version back to the one corresponding to the AliRoot tag you are using (see valid combinations at [http://alimonitor.cern.ch/packages/]) before starting your analysis...</p>
 <h4 id="basic-method">Basic method</h4>
 <p>This method is the most direct one, but also probably the most cumbersome one. Nevertheless it's good to know and will certainly help if the following method (AF class) does not work for some reason...</p>
 <p>First thing is to construct a query string for the data you want to stage. The query string closely ressembles what you would use directly from alien to search for files :</p>

@@ -40,6 +40,12 @@ int main(int argc, char* argv[])
     {
       debug++;
     }
+
+    else if ( !strcmp(argv[i],"--mdfile") )
+    {
+      mdfile = argv[i+1];
+      ++i;
+    }
     
     else {
       std::cerr << "Unknown option " << argv[i] << std::endl;

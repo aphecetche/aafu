@@ -13,7 +13,15 @@ where `option` can be :
 - "workers=8x" to get 8 workers per machine (try not to go over this)
 - "masteronly" to skip the connection to the proof workers and start a conversation only with the master (it's faster to start, and is more than enough for everything related to staging, for instance)
 	
-Please remember that you must have a valid alien token before attempting the connection. 
+Please remember that you must have a valid alien token before attempting the connection and that you must have the following line in your `.rootrc`:
+
+	XSec.GSI.DelegProxy: 2
+	
+If you do not want to touch your `.rootrc` you can also do :
+
+	root[] gEnv->SetValue("XSec.GSI.DelegProxy", "2");
+	
+before connecting (each time).
 
 Compared to SAF1 though, the big news in SAF2 lies in how the datasets are dealt with.
 
@@ -36,7 +44,9 @@ A dynamic dataset is a query (string) to the alien catalog, e.g.
 ## Available data on SAF2
 
 Discovering what data is already present on SAF2 is a bit less easy than on SAF1 (where you could do `gProof->ShowDataSets("/*/*/*")` 
-A script will be put in place to generate, at a given frequency (once per day, per week ?), [HTML reports](http://cern.ch/laurent.aphecetche/saf2 "saf disk reports") of the data sitting on SAF2 disks.
+
+Instead, a script is in place to generate, at a given frequency (once per day), [HTML reports](https://nansafmaster2.in2p3.fr "saf disk reports") of the data sitting on SAF2 disks.
+
 When the data you want to use is not available, you'll have to request a staging for it. You can do it all by yourself (see next sections) or ask for help (send a mail to alice-saf at subatech dot in2p3 dot fr).
 
 ## Staging datasets
@@ -57,7 +67,7 @@ As a reminder, you can list the Root versions with :
  	TProof::Mgr("nansafmaster2")->ShowROOTVersions();
  	.q
 
-Mind that all interactions with `TProof::Mgr` must be done outside any Proof session.
+Mind that all interactions with `TProof::Mgr` must be done outside any Proof session. Please also remember to change the Root version back to the one corresponding to the AliRoot tag you are using (see valid combinations at [http://alimonitor.cern.ch/packages/]) before starting your analysis...
 
 #### Basic method
 
