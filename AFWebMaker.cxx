@@ -1198,7 +1198,7 @@ void AFWebMaker::GroupFileInfoList()
       std::string speriod("PERIOD:");
       speriod += period;
       
-      AddFileToGroup(period,fileInfo);
+      AddFileToGroup(speriod,fileInfo);
       
       if ( esdPass.size() > 0 )
       {
