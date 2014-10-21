@@ -10,5 +10,7 @@ webmaker: AFWebMaker.o webmaker.o
 	$(CXX) -g $^ -o $@
 
 install:
-	install webmaker $(DESTDIR)/webmaker
-	install -m 644 *.css *.js *.html $(DESTDIR)/
+	mkdir -p $(DESTDIR)/bin
+	mkdir -p $(DESTDIR)/html
+	install webmaker $(DESTDIR)/bin/webmaker
+	install -m 644 *.css *.js *.html $(DESTDIR)/html
