@@ -5,8 +5,8 @@
 
 ALIEN_USER=laphecet
 
-SWBASEDIR="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot";
-
+SWBASEDIR="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot"
+DEFAULTROOT="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-13"
 DEBUG=true
 
 # insure we get a valid token
@@ -14,20 +14,26 @@ function assert_alien_token()
 {
   # alien-token-init laphecet
 
+  tryToGetToken=$1
+
   if [ -n "$DEBUG" ]; then
     echo "assert_alien_token"
   fi
 
-  proxyValidity=`xrdgsiproxy info 2>&1 | grep "time left" | cut -d " " -f 6`
+  proxyValidity=$(xrdgsiproxy info 2>&1 | grep "time left" | cut -d " " -f 6)
   if [[ $proxyValidity == "" || $proxyValidity == "0h:0m:0s" ]]; then
-    echo "No valid proxy found. Nothing done!"
-    exit
+    echo "No valid proxy found"
+    if [ "$tryToGetToken" -eq 1 ]; then
+	echo "Doing alien-token-init"
+	alien-token-init $ALIEN_USER
+	assert_alien_token 0
+    fi
+    exit 1
   else
   if [ -n "$DEBUG" ]; then
     echo "Proxy still valid. Using it."
   fi
   fi
-
 }
 
 # decode the src url
@@ -80,6 +86,8 @@ function cpmacro_with_filter_transfer()
   aliroot=${aliroot/.root/}
 
   if [ -n "$DEBUG" ]; then
+    echo "src=$1"
+    echo "dest=$2"
     echo "filter=$filter"
     echo "aliroot=$aliroot"
   fi
@@ -91,20 +99,54 @@ function cpmacro_with_filter_transfer()
     return 4;
   fi
 
-# fine, the version exists, let's get the Root dependency
+# fine, the version exists, let's get the Root dependency and the env. correct
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-  tmp="$(alienv printenv VO_ALICE@AliRoot::${aliroot}) | tr ';' '\n'"
-  echo $tmp
-#  echo "ROOTSYS is $ROOTSYS"
+#  eval $(alienv printenv VO_ALICE@AliRoot::${aliroot})
+  $(alienv setenv VO_ALICE@AliRoot::${aliroot})
+  root=$(which root)
 
-  return 5;
+  macro=${ALICE_ROOT}/PWG/muon/CpMacroWithFilter.C
+  
+#  macro=/home/laurent/alicesw/aliroot/master/PWG/muon/CpMacroWithFilter.C
+
+  if [ ! -e "$macro" ]; then
+      echo "$macro not found !"
+      return 5;
+  fi
+
+  filterMacroFullPath="${ALICE_ROOT}/PWG/muon/FILTER_${filter}.C"
+  filterRootLogonFullPath="${ALICE_ROOT}/PWG/muon/FILTER_${filter}_rootlogon.C"
+  alirootPath="${ALICE_ROOT}"
+
+  if [ ! -f "$filterMacroFullPath" ]; then
+      echo "$filterMacroFullPath not found !"
+      return 6;
+  fi
+
+  if [ ! -f "$filterRootLogonFullPath" ]; then
+      echo "$filterRootLogonFullPath not found !"
+      return 7;
+  fi
+
+  # strip the filtering bit and pieces from the source file name
+  # before giving it to the filtering macro
+  from=${1/_FILTER_/}
+  from=${from/$filter/}
+  from=${from/_WITH_ALIROOT_/}
+  from=${from/$aliroot/}
+
+  $root -n -q -b $macro+\(\"alien://$from\",\"$2\",\"FILTER_$filter\",\"$filterMacroFullPath\",\"$filterRootLogonFullPath\",\"$alirootPath\"\)
+
+  return 0
 }
 
 # perform a copy using a Root macro
 function cpmacro_transfer()
 {
-  assert_alien_token
+  assert_alien_token 1
+
+  source /tmp/gclient_env_$UID
 
   filter="$(echo $1 | grep FILTER)"
   if [ -n "$filter" ]; then
@@ -112,8 +154,14 @@ function cpmacro_transfer()
     return $?
   fi
 
+  source $DEFAULTROOT/bin/thisroot.sh
 
-  echo "would to a simple TFile::Cp here..."
+  root -n -b <<EOF 
+TGrid::Connect("alien://");
+TFile::Cp("alien://$1","$2");
+.q
+EOF
+  
 
   return 3
 }
