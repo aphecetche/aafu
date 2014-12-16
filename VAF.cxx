@@ -1243,6 +1243,7 @@ void VAF::ShowXrdDmLog()
   if (Connect("workers=1x"))
   {
     gProof->Exec(Form(".!echo '**************************************'; hostname -a ; cat %s/xrootd/xrddm.log",LogDir().Data()));
+    gProof->Exec(".!echo '++++++++++++++++++++++++++++++++++++++'; hostname -a ; cat /var/log/xrootd/xrddm.log*");
   }
   
 }
@@ -1271,6 +1272,7 @@ void VAF::ShowConfig()
      files.push_back("%s/proof/xproofd/afdsmgrd.conf");
      files.push_back("%s/xrootd/scripts/frm-stage-with-xrddm.sh");
      files.push_back("/usr/local/xrddm/etc/xrddm_env.sh");
+     files.push_back("/usr/local/xrddm/etc/xrddm.cfg");
      
      TString cmd(".!");
      
