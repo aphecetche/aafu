@@ -69,6 +69,31 @@ Bool_t VAF::Connect(const char* option)
   
   if ( fConnect.Length()==0 ) return kFALSE;
   
+  if (!fConnect.Contains("@"))
+  {
+    std::ifstream in(Form("/tmp/gclient_token_%d",gSystem->GetUid()));
+    TString s;
+    TString user;
+    while (s.ReadLine(in))
+    {
+      if (s.BeginsWith("User"))
+      {
+        TObjArray* a = s.Tokenize('=');
+        user = static_cast<TObjString*>(a->Last())->String();
+        user = user(1,user.Length()-1);
+        delete a;
+        break;
+      }
+    }
+    if (user.Length())
+    {
+      TString tmp = fConnect;
+      fConnect = user;
+      fConnect += "@";
+      fConnect += tmp;
+    }
+  }
+  
   TProof::Open(fConnect.Data(),option);
   
   return (gProof != 0x0);
