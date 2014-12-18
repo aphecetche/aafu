@@ -204,16 +204,17 @@ function alien_transfer()
 decode_src $1
 
 
-case $src_proto in
+case "$src_proto" in
   "root")
   echo "root protocol not yet supported by this script"
   exit 1
   ;;
   "alien")
-  alien_transfer $src_path $2
+    alien_transfer $src_path $2
+    exit $?
   ;;
 esac
 
-exit $?
+exit 2
 
 
