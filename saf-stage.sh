@@ -2,8 +2,12 @@
 #
 #  saf-stage.sh $src $dest
 #
+# to properly work, this script needs the Alien API be in the
+# PATH (to find xrdgsiproxy and alien-token-init commands)
+#
 
-ALIEN_USER=laphecet
+#ALIEN_USER=laphecet
+ALIEN_USER=proof
 
 SWBASEDIR="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot"
 DEFAULTROOT="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-13"
@@ -22,6 +26,7 @@ function assert_alien_token()
 
   proxyValidity=$(xrdgsiproxy info 2>&1 | grep "time left" | cut -d " " -f 6)
   if [[ $proxyValidity == "" || $proxyValidity == "0h:0m:0s" ]]; then
+   xrdgsiproxy info
     echo "No valid proxy found"
     if [ "$tryToGetToken" -eq 1 ]; then
 	echo "Doing alien-token-init"
@@ -102,14 +107,13 @@ function cpmacro_with_filter_transfer()
 # fine, the version exists, let's get the Root dependency and the env. correct
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-#  eval $(alienv printenv VO_ALICE@AliRoot::${aliroot})
-  $(alienv setenv VO_ALICE@AliRoot::${aliroot})
+  source alienv setenv VO_ALICE@AliRoot::${aliroot}
+  echo $PATH
+  echo $LD_LIBRARY_PAT
   root=$(which root)
 
   macro=${ALICE_ROOT}/PWG/muon/CpMacroWithFilter.C
   
-#  macro=/home/laurent/alicesw/aliroot/master/PWG/muon/CpMacroWithFilter.C
-
   if [ ! -e "$macro" ]; then
       echo "$macro not found !"
       return 5;
@@ -172,22 +176,22 @@ function alien_transfer()
   local src=$1
   local dest=$2
 
-  archive="$(echo $src | grep '\.zip')"
-  root="$(echo $src | grep '\.root')"
+  isarchive="$(echo $src | grep '\.zip')"
+  isroot="$(echo $src | grep '\.root')"
 
   if [ -n "$DEBUG" ]; then
     echo "src: $src"
     echo "dest: $dest"
-    echo "archive: $archive"
-    echo "root: $root"
+    echo "isarchive: $isarchive"
+    echo "isroot: $isroot"
   fi
 
-  if [ -n "$archive" ]; then
+  if [ -n "$isarchive" ]; then
     xrdcp_transfer $1 $2
     return $?
   fi
 
-  if [ -n "$root" ]; then
+  if [ -n "$isroot" ]; then
     cpmacro_transfer $1 $2
     return $?
   fi
