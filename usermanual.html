@@ -16,7 +16,7 @@ $(function() { $("#toc").tocify({ context: "body", selectors: "h2,h3,h4", showEf
 <h1 id="saf2-user-manual">SAF2 User Manual</h1>
 <h2 id="introduction">Introduction</h2>
 <p>SAF2 is simply an evolution of SAF1, with more workers (108 instead of 48) and more disk space (30 TB instead of 12). The master name has changed from <code>nansafmaster</code> to <code>nansafmaster2</code> simply, so the connection is now done with :</p>
-<pre><code>TProof::Open(&quot;nansafmaster2.in2p3.fr&quot;,option);</code></pre>
+<pre><code>TProof::Open(&quot;user@nansafmaster2.in2p3.fr&quot;,option);</code></pre>
 <p>where <code>option</code> can be :</p>
 <ul>
 <li>&quot;&quot; (empty, the default) to get all available workers</li>
@@ -24,6 +24,7 @@ $(function() { $("#toc").tocify({ context: "body", selectors: "h2,h3,h4", showEf
 <li>&quot;workers=8x&quot; to get 8 workers per machine (try not to go over this)</li>
 <li>&quot;masteronly&quot; to skip the connection to the proof workers and start a conversation only with the master (it's faster to start, and is more than enough for everything related to staging, for instance)</li>
 </ul>
+<p>Note that the username should be specified in the Open command. It might work without but we observed that sometimes the connection just hangs when the username is not specified, while it's always OK with the username...</p>
 <p>Please remember that you must have a valid alien token before attempting the connection and that you must have the following line in your <code>.rootrc</code>:</p>
 <pre><code>XSec.GSI.DelegProxy: 2</code></pre>
 <p>If you do not want to touch your <code>.rootrc</code> you can also do :</p>
@@ -47,11 +48,11 @@ $(function() { $("#toc").tocify({ context: "body", selectors: "h2,h3,h4", showEf
 <p>The actual staging request can be performed in two ways (basic and libmyaf), see the next two sections below. In both cases, please assess first the total size of the data you request. Then use common sense as to which size is reasonable or not, baring in mind that the total available storage space on SAF2 is about 29 TB.</p>
 <p>Warning : the dynamic datasets feature is a relatively recent one, so it will only work if you've selected a recent enough Root version, e.g.</p>
 <pre><code> &gt; root
- TProof::Mgr(&quot;nansafmaster2&quot;)-&gt;SetROOTVersion(&quot;VO_ALICE@ROOT::v5-34-18&quot;);
+ TProof::Mgr(&quot;user@nansafmaster2.in2p3.fr&quot;)-&gt;SetROOTVersion(&quot;VO_ALICE@ROOT::v5-34-18&quot;);
  .q</code></pre>
 <p>As a reminder, you can list the Root versions with :</p>
 <pre><code>&gt; root
-TProof::Mgr(&quot;nansafmaster2&quot;)-&gt;ShowROOTVersions();
+TProof::Mgr(&quot;user@nansafmaster2.in2p3.fr&quot;)-&gt;ShowROOTVersions();
 .q</code></pre>
 <p>Mind that all interactions with <code>TProof::Mgr</code> must be done outside any Proof session. Please also remember to change the Root version back to the one corresponding to the AliRoot tag you are using (see valid combinations at [http://alimonitor.cern.ch/packages/]) before starting your analysis...</p>
 <h4 id="basic-method">Basic method</h4>

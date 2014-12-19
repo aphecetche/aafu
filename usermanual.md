@@ -4,7 +4,7 @@
 
 SAF2 is simply an evolution of SAF1, with more workers (108 instead of 48) and more disk space (30 TB instead of 12). The master name has changed from `nansafmaster` to `nansafmaster2` simply, so the connection is now done with :
 
-	TProof::Open("nansafmaster2.in2p3.fr",option);
+	TProof::Open("user@nansafmaster2.in2p3.fr",option);
 	
 where `option` can be :
 
@@ -13,6 +13,9 @@ where `option` can be :
 - "workers=8x" to get 8 workers per machine (try not to go over this)
 - "masteronly" to skip the connection to the proof workers and start a conversation only with the master (it's faster to start, and is more than enough for everything related to staging, for instance)
 	
+Note that the username should be specified in the Open command. It might work without but we observed that sometimes the connection just hangs when the username is not specified, while it's 
+always OK with the username...
+
 Please remember that you must have a valid alien token before attempting the connection and that you must have the following line in your `.rootrc`:
 
 	XSec.GSI.DelegProxy: 2
@@ -58,13 +61,13 @@ When the data you want to use is not available, you'll have to request a staging
  Warning : the dynamic datasets feature is a relatively recent one, so it will only work if you've selected a recent enough Root version, e.g. 
  
      > root
- 	 TProof::Mgr("nansafmaster2")->SetROOTVersion("VO_ALICE@ROOT::v5-34-18");
+ 	 TProof::Mgr("user@nansafmaster2.in2p3.fr")->SetROOTVersion("VO_ALICE@ROOT::v5-34-18");
 	 .q
 	
 As a reminder, you can list the Root versions with :
 
     > root
- 	TProof::Mgr("nansafmaster2")->ShowROOTVersions();
+ 	TProof::Mgr("user@nansafmaster2.in2p3.fr")->ShowROOTVersions();
  	.q
 
 Mind that all interactions with `TProof::Mgr` must be done outside any Proof session. Please also remember to change the Root version back to the one corresponding to the AliRoot tag you are using (see valid combinations at [http://alimonitor.cern.ch/packages/]) before starting your analysis...
