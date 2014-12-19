@@ -135,7 +135,7 @@ function cpmacro_with_filter_transfer()
 
   # strip the filtering bit and pieces from the source file name
   # before giving it to the filtering macro
-  from=${1/_FILTER_/}
+  from=${1/.FILTER_/}
   from=${from/$filter/}
   from=${from/_WITH_ALIROOT_/}
   from=${from/$aliroot/}
