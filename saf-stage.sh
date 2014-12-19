@@ -85,7 +85,7 @@ function cpmacro_with_filter_transfer()
     echo "cpmacro_with_filter_transfer $1 $2"
   fi
 
-  f=${1/*_FILTER_/}
+  f=${1/*FILTER_/}
   filter=${f/_WITH_ALIROOT_*/}
   aliroot=${f/*_WITH_ALIROOT_/}
   aliroot=${aliroot/.root/}
