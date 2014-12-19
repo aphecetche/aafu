@@ -24,6 +24,7 @@ int usage() {
   std::cout << "-- xferlog filename : (advanced) get the log of a failed transfer "<< std::endl;
   std::cout << "-- conf : (advanced) show the configuration files of the AF "<< std::endl;
   std::cout << "-- xfers : (advanced) show the # of current file transfers the AF "<< std::endl;
+  std::cout << "-- log : (advanced) show the log of saf_stage" << std::endl;
   return -1;
 }
 
@@ -104,6 +105,10 @@ int main(int argc, char* argv[])
   
   if ( command == "xfers") {
     af->ShowTransfers();
+  }
+  
+  if ( command == "log") {
+    af->ShowLog();
   }
     
   return 0;

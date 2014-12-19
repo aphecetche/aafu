@@ -102,6 +102,8 @@ public:
   
   void ShowXrdDmLog();
   
+  void ShowLog();
+  
   void ShowPackages();
   
   void ShowDiskUsage();
