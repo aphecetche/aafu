@@ -51,6 +51,18 @@ int main(int argc, char* argv[])
       std::cerr << "Unknown option " << argv[i] << std::endl;
     }
   }
+
+  if ( mdfile.size() > 0 )
+  {
+    AFWebMaker::SetGlobalDebugLevel(debug);
+    AFWebMaker::GenerateUserManual(mdfile);
+  }
+  
+  if ( topdir.length() == 0 )
+  {
+    std::cerr << "No top directory given. Exiting now." << std::endl;
+    return -2;
+  }
   
   DIR* dirp = opendir(topdir.c_str());
   if (!dirp)
@@ -62,11 +74,6 @@ int main(int argc, char* argv[])
   AFWebMaker wm(topdir,pattern,prefix,debug);
   
   wm.GenerateReports();
-  
-  if ( mdfile.size() > 0 )
-  {
-    wm.GenerateUserManual(mdfile);
-  }
   
   return 0;
 }

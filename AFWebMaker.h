@@ -45,13 +45,14 @@ public:
   
   void GenerateReports();
   
-  void GenerateUserManual(const std::string& mdfile);
+  static void GenerateUserManual(const std::string& mdfile);
+  static void SetGlobalDebugLevel(int level) { fgDebugLevel = level; }
   
 private:
   
   void AddFileToGroup(const std::string& file, const AFWebMaker::AFFileInfo& fileInfo);
 
-  std::string CSS() const;
+  static std::string CSS();
 
   int DecodePath(const std::string& path, std::string& period,
                  std::string& esdPass, std::string& aodPass,
@@ -90,15 +91,15 @@ private:
 
   void GroupFileInfoList();
 
-  std::string HTMLHeader(const std::string& title, const std::string& css, const std::string& js) const;
+  static std::string HTMLHeader(const std::string& title, const std::string& css, const std::string& js);
 
-  std::string HTMLFooter(bool withJS=false) const;
+  static std::string HTMLFooter(bool withJS=false);
 
   std::string JSGoogleChart(const std::string& chartPackage="corechart") const;
   
   std::string JSListJumper() const;
 
-  std::string JSTOC() const;
+  static std::string JSTOC();
   
   std::string OutputHtmlFileName(const std::string& type) const;
 
@@ -113,6 +114,9 @@ private:
   AFFileInfoList fFileInfoList;
   AFFileInfoMap fGroupMap;
   int fDebugLevel;
+  
+  static int fgDebugLevel;
+
 };
 
 #endif

@@ -10,11 +10,15 @@
 #include <cstring>
 #include <cstdlib>
 
+int AFWebMaker::fgDebugLevel = 0;
+
 #define WARNING() std::cout << "WARNING " << __FILE__ << ":" << __LINE__ << " "
 
 #define ERROR() std::cerr << "ERROR " << __FILE__ << ":" << __LINE__ << " "
 
 #define DEBUG(level) if ( fDebugLevel > level ) std::cout <<  "DEBUG " << __FILE__ << ":" << __LINE__ << " "
+
+#define GDEBUG(level) if ( AFWebMaker::fgDebugLevel > level ) std::cout <<  "GDEBUG " << __FILE__ << ":" << __LINE__ << " "
 
 namespace {
   
@@ -161,7 +165,7 @@ void AFWebMaker::AddFileToGroup(const std::string& file, const AFWebMaker::AFFil
 }
 
 //______________________________________________________________________________
-std::string AFWebMaker::CSS() const
+std::string AFWebMaker::CSS()
 {
   return "<link rel=\"stylesheet\" type=\"text/css\" href=\"af.css\"/>\n";
 }
@@ -358,7 +362,7 @@ AFWebMaker::AFFileInfoMap& AFWebMaker::FileInfoMap()
 //______________________________________________________________________________
 AFWebMaker::AFFileSize AFWebMaker::GenerateASCIIFileList(const std::string& key, const std::string& value, const AFFileInfoList& list) const
 {
-  DEBUG(2) << "GenerateASCIIFileList("<< key << "," << value << ",list)" << std::endl;
+  GDEBUG(2) << "GenerateASCIIFileList("<< key << "," << value << ",list)" << std::endl;
   
   std::string filename(fHostName);
   
@@ -950,7 +954,7 @@ void AFWebMaker::GenerateTreeMap()
 //_________________________________________________________________________________________________
 void AFWebMaker::GenerateUserManual(const std::string& mdfile)
 {
-  DEBUG(2) << "GenerateUserManual" << std::endl;
+  GDEBUG(2) << "GenerateUserManual" << std::endl;
   
   if ( system("which pandoc") )
   {
@@ -1265,7 +1269,7 @@ AFWebMaker::AFFileInfoMap& AFWebMaker::GroupMap()
 }
 
 //______________________________________________________________________________
-std::string AFWebMaker::HTMLFooter(bool withJS) const
+std::string AFWebMaker::HTMLFooter(bool withJS)
 {
   std::string footer;
   
@@ -1281,7 +1285,7 @@ std::string AFWebMaker::HTMLFooter(bool withJS) const
 }
 
 //______________________________________________________________________________
-std::string AFWebMaker::HTMLHeader(const std::string& title, const std::string& css, const std::string& js) const
+std::string AFWebMaker::HTMLHeader(const std::string& title, const std::string& css, const std::string& js)
 {
   std::string header;
   
@@ -1361,7 +1365,7 @@ std::string AFWebMaker::JSListJumper() const
 }
 
 //______________________________________________________________________________
-std::string AFWebMaker::JSTOC() const
+std::string AFWebMaker::JSTOC()
 {
   std::string js;
   
