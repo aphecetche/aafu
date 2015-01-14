@@ -148,7 +148,7 @@ Start root and load the `libmyaf.so`library (note that if you start `root` from 
 
 Then create an object of class VAF :
 
-  VAF* af = VAF::Create("saf2");
+  VAF* vaf = VAF::Create("saf2");
   
 the parameter is the name of the analysis facility you want to deal with. It will only work if you have in your `$HOME` directory a `.aaf` file which define a number of variables for the relevant analysis facility. For instance : 
 
