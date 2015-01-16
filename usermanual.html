@@ -187,7 +187,7 @@ Default tree  : (no default tree)</code></pre>
 <h5 id="using-libmyaf">using libmyaf</h5>
 <p>Start root and load the <code>libmyaf.so</code>library (note that if you start <code>root</code> from the code directory, the <code>rootlogon.C</code> found there will be used and it is already loading the <code>libmyaf.so</code> library for you).</p>
 <p>Then create an object of class VAF :</p>
-<p>VAF* af = VAF::Create(&quot;saf2&quot;);</p>
+<p>VAF* vaf = VAF::Create(&quot;saf2&quot;);</p>
 <p>the parameter is the name of the analysis facility you want to deal with. It will only work if you have in your <code>$HOME</code> directory a <code>.aaf</code> file which define a number of variables for the relevant analysis facility. For instance :</p>
 <pre><code>saf2.user: laphecet
 saf2.master: nansafmaster2.in2p3.fr
