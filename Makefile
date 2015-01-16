@@ -35,7 +35,7 @@ webmaker.o: webmaker.cxx
 webmaker: AFWebMaker.o webmaker.o
 	$(CXX) -g $^ -o $@
 
-RPMVERSION=1.3
+RPMVERSION=1.30
 
 clean:
 	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM webmaker aafu-webmaker-$(RPMVERSION)*
@@ -51,7 +51,7 @@ rpm:	archive
 	dir=$(shell pwd)
 	tar -zvxf aafu-webmaker-$(RPMVERSION).tar.gz
 	cd aafu-webmaker-$(RPMVERSION)/ ; make ; mkdir -p /tmp/aafu-tmpdir ; make install DESTDIR=/tmp/aafu-tmpdir
-	cd /tmp/aafu-tmpdir ; fpm -s dir -t rpm -n aafu-webmaker -v $(RPMVERSION) --prefix /opt -C . .
+	cd /tmp/aafu-tmpdir ; fpm -s dir -t rpm -n aafu-webmaker -v $(RPMVERSION) --rpm-os linux --prefix /opt -C . .
 	mv /tmp/aafu-tmpdir/aafu-webmaker-$(RPMVERSION)*.rpm .
 	rm -fr aafu-webmaker-$(RPMVERSION).* aafu-webmaker-$(RPMVERSION)/
 	rm -rf /tmp/aafu-tmpdir
