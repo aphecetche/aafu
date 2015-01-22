@@ -10,7 +10,7 @@ class TMap;
 #include "TNamed.h"
 #include "TDatime.h"
 #include "Riostream.h"
-
+#include <map>
 ///
 /// Interface for class dealing with analysis facility datasets
 ///
@@ -70,6 +70,8 @@ public:
 
   void GetOneDataSetSize(const char* dsname, Int_t& nFiles, Int_t& nCorruptedFiles, Long64_t& size, Bool_t showDetails=kFALSE);
   void GroupDatasets();
+
+  Int_t CheckOneDataSet(const char* dsname, std::map<std::string,int>& badFiles);
 
   void GroupDatasets(const TList& list);
   void GroupDatasets(const char* dslist);
@@ -145,6 +147,10 @@ protected:
                             TString& mbasename, TString& search) const;
 
   void ReadIntegers(const char* filename, std::vector<int>& integers);
+  
+  int ReadTree(const char* treename);
+  
+  int TestROOTFile(const char* file, const char* treename);
   
 protected:
   TString fConnect; // Connect string (afmaster)

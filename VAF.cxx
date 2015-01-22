@@ -31,10 +31,12 @@
 #include "TSystem.h"
 #include "TGrid.h"
 #include "AFWebMaker.h"
+#include "TTree.h"
 
 namespace
 {
   Double_t byte2GB(1024*1024*1024);
+  
 }
 
 //______________________________________________________________________________
@@ -49,6 +51,53 @@ fHomeDir(""),fLogDir(""), fFileTypeToLookFor('f')
   }
   
 //  std::cout << "Connect string to be used = " << fConnect.Data() << std::endl;
+}
+
+
+//______________________________________________________________________________
+Int_t VAF::CheckOneDataSet(const char* dsname, std::map<std::string,int>& badFiles)
+{
+  /// Check one data set
+  /// The check itself is handled by the TestROOTFile method
+  /// Return the number of bad files, and put their names
+  /// in the badFiles map
+  
+  if (!Connect()) return -1;
+  
+  std::cout << "Testing dataset " << dsname << " ... " << std::endl;
+  
+  TFileCollection* fc = gProof->GetDataSet(dsname);
+  
+  if (!fc)
+  {
+    std::cout << "cannot get dataset " << dsname << std::endl;
+    return -2;
+  }
+  else
+  {
+    std::cout << "Scanning " << fc->GetList()->GetLast() << " files" << std::endl;
+  }
+  TIter next(fc->GetList());
+  TFileInfo* fi;
+  Int_t nbad(0);
+  
+  while ( ( fi = static_cast<TFileInfo*>(next()) ) )
+  {
+    TUrl url(*(fi->GetFirstUrl()));
+    std::string filename(url.GetUrl());
+    
+    if (!fi->TestBit(TFileInfo::kStaged) || fi->TestBit(TFileInfo::kCorrupted)) continue;
+    
+    int rv = TestROOTFile(filename.c_str(),fc->GetDefaultTreeName());
+
+    badFiles[filename.c_str()] += rv;
+    
+    if (rv<0) ++nbad;
+  }
+  
+  std::cout << "nad=" << nbad << std::endl;
+  
+  return nbad;
 }
 
 //______________________________________________________________________________
@@ -1303,4 +1352,56 @@ void VAF::ShowConfig()
      
      gProof->Exec(cmd.Data());
    }
+}
+
+//______________________________________________________________________________
+int VAF::ReadTree(const char* treename)
+{
+  TTree* tree = static_cast<TTree*>(gDirectory->Get(treename));
+  if (!tree) return -2;
+  
+  Long64_t nentries = tree->GetEntries();
+  
+  for (Long64_t i = 0; i < nentries; ++i)
+  {
+    if ( tree->GetEntry(i) <= 0 ) return -2;
+  }
+  
+  return nentries;
+}
+
+//______________________________________________________________________________
+int VAF::TestROOTFile(const char* file, const char* treename)
+{
+  std::cout << "TestROOTFile " << file << " for tree " << treename << "..." << std::flush;
+  Long64_t size(0);
+  int rv(-1);
+  
+  if ( gSystem->AccessPathName(file) == 1 )
+  {
+    std::cout << " does not exists" << std::endl;
+    return 1;
+  }
+  else
+  {
+    TFile* f = TFile::Open(file);
+    if (!f)
+    {
+      std::cout << "Cannot open " << file << std::endl;
+      return -1;
+      
+    }
+    std::cout << " > " << std::flush;
+    size += f->GetSize();
+    if ( size > 0 )
+    {
+      rv = ReadTree(treename);
+    }
+    f->Close();
+    delete f;
+  }
+  std::cout << Form("%10d entries read successfully",rv) << std::endl;
+  
+  if (rv<0) std::cout << "TestROOTFile : " << file << " has a problem" << std::endl;
+  return rv;
 }
