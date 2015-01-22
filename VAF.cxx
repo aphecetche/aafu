@@ -1233,7 +1233,8 @@ void VAF::ShowXferLog(const char* file)
 {
   if (Connect("workers=1x"))
   {
-    gProof->Exec(Form(".!hostname ; cat %s/xrootd/xrddm/%s/xrddm_*.log",LogDir().Data(),file));
+//    gProof->Exec(Form(".!hostname ; cat %s/xrootd/xrddm/%s/xrddm_*.log",LogDir().Data(),file));
+    gProof->Exec(Form(".!hostname ; cat %s/xrootd/data/%s.anew/saf-stage.log",LogDir().Data(),file));
   }
 }
 
@@ -1243,8 +1244,8 @@ void VAF::ShowXrdDmLog()
   if (Connect("workers=1x"))
   {
     gProof->Exec(Form(".!echo '**************************************'; hostname -a ; cat %s/xrootd/xrddm.log",LogDir().Data()));
-    gProof->Exec(".!echo '++++++++++++++++++++++++++++++++++++++'; hostname -a ; cat /var/log/xrootd/xrddm.log*");
-    gProof->Exec(".!echo '++++++++++++++++++++++++++++++++++++++'; hostname -a ; tail -100 /var/log/xrootd/saf_stage.log");
+    gProof->Exec(".!echo '++++++++++++++++++++++++++++++++++++++'; hostname -a ; cat /var/log/xrootd/xrddm.log");
+//    gProof->Exec(".!echo '++++++++++++++++++++++++++++++++++++++'; hostname -a ; tail -100 /var/log/xrootd/saf_stage.log");
   }
   
 }
