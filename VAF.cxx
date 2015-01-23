@@ -53,9 +53,20 @@ fHomeDir(""),fLogDir(""), fFileTypeToLookFor('f')
 //  std::cout << "Connect string to be used = " << fConnect.Data() << std::endl;
 }
 
+//______________________________________________________________________________
+Int_t VAF::CheckOneDataSet(const char* dsname)
+{
+  std::ofstream out("check-one-dataset.sh");
+  
+  Int_t rv = CheckOneDataSet(dsname,out);
+  
+  out.close();
+
+  return rv;
+}
 
 //______________________________________________________________________________
-Int_t VAF::CheckOneDataSet(const char* dsname, std::map<std::string,int>& badFiles)
+Int_t VAF::CheckOneDataSet(const char* dsname, std::ofstream& out)
 {
   /// Check one data set
   /// The check itself is handled by the TestROOTFile method
@@ -80,6 +91,8 @@ Int_t VAF::CheckOneDataSet(const char* dsname, std::map<std::string,int>& badFil
   TIter next(fc->GetList());
   TFileInfo* fi;
   Int_t nbad(0);
+  TString treeName(fc->GetDefaultTreeName());
+  treeName.ReplaceAll("/","");
   
   while ( ( fi = static_cast<TFileInfo*>(next()) ) )
   {
@@ -88,11 +101,16 @@ Int_t VAF::CheckOneDataSet(const char* dsname, std::map<std::string,int>& badFil
     
     if (!fi->TestBit(TFileInfo::kStaged) || fi->TestBit(TFileInfo::kCorrupted)) continue;
     
-    int rv = TestROOTFile(filename.c_str(),fc->GetDefaultTreeName());
+    int rv = TestROOTFile(filename.c_str(),treeName.Data());
 
-    badFiles[filename.c_str()] += rv;
-    
-    if (rv<0) ++nbad;
+    if (rv<0)
+    {
+      
+      out << Form("echo \"xrd %s rm %s\"",url.GetHost(),url.GetFile()) << std::endl;
+      
+      out << "xrd " << url.GetHost() << " rm " << url.GetFile() << std::endl;      ++nbad;
+      
+    }
   }
   
   std::cout << "nad=" << nbad << std::endl;

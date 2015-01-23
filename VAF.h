@@ -71,7 +71,8 @@ public:
   void GetOneDataSetSize(const char* dsname, Int_t& nFiles, Int_t& nCorruptedFiles, Long64_t& size, Bool_t showDetails=kFALSE);
   void GroupDatasets();
 
-  Int_t CheckOneDataSet(const char* dsname, std::map<std::string,int>& badFiles);
+  Int_t CheckOneDataSet(const char* dsname, std::ofstream& out);
+  Int_t CheckOneDataSet(const char* dsname);
 
   void GroupDatasets(const TList& list);
   void GroupDatasets(const char* dslist);
