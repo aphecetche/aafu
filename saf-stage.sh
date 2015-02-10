@@ -6,11 +6,11 @@
 # PATH (to find xrdgsiproxy and alien-token-init commands)
 #
 
-#ALIEN_USER=laphecet
-ALIEN_USER=proof
+ALIEN_USER=laphecet
+#ALIEN_USER=proof
 
-SWBASEDIR="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/AliRoot"
-DEFAULTROOT="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages/ROOT/v5-34-13"
+SWBASEDIR="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages"
+DEFAULTALIROOT="v5-06-02"
 DEBUG=true
 
 # insure we get a valid token
@@ -71,14 +71,15 @@ function decode_src()
 }
 
 # do a plain xrdcp transfer (xrootd protocol)
-function xrdcp_transfer()
+function archive_transfer()
 {
   echo "xrdcp transfer not yet implemented"
-  return 2
+	xrdcp $1 $2
+return $?
 }
 
 # perform a copy with a Root which can do a filtering as well
-function cpmacro_with_filter_transfer()
+function rootfile_transfer_with_filter()
 {
 
   if [ -n "$DEBUG" ]; then
@@ -86,88 +87,81 @@ function cpmacro_with_filter_transfer()
   fi
 
   f=${1/*FILTER_/}
-  filter=${f/_WITH_ALIROOT_*/}
-  aliroot=${f/*_WITH_ALIROOT_/}
-  aliroot=${aliroot/.root/}
+  filter=${f/_WITH_ALIPHYSICS_*/}
+  aliphysics=${f/*_WITH_ALIPHYSICS_/}
+  aliphysics=${aliphysics/.root/}
 
   if [ -n "$DEBUG" ]; then
     echo "src=$1"
     echo "dest=$2"
     echo "filter=$filter"
-    echo "aliroot=$aliroot"
+    echo "aliphysics=$aliphysics"
   fi
 
-# check the aliroot version request actually exists
+# check the aliphysics version request actually exists
 
-  if [ ! -d "$SWBASEDIR/$aliroot" ]; then
-    echo "Requested aliroot version not found : $SWBASEDIR/$aliroot does not exist"
+  if [ ! -d "$SWBASEDIR/AliPhysics/$aliphysics" ]; then
+    echo "Requested aliphysics version not found : $SWBASEDIR/AliPhysics/$aliphysics does not exist"
     return 4;
   fi
 
 # fine, the version exists, let's get the Root dependency and the env. correct
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-  source alienv setenv VO_ALICE@AliRoot::${aliroot}
-  echo $PATH
-  echo $LD_LIBRARY_PAT
-  root=$(which root)
-
-  macro=${ALICE_ROOT}/PWG/muon/CpMacroWithFilter.C
-  
-  if [ ! -e "$macro" ]; then
-      echo "$macro not found !"
-      return 5;
-  fi
-
-  filterMacroFullPath="${ALICE_ROOT}/PWG/muon/FILTER_${filter}.C"
-  filterRootLogonFullPath="${ALICE_ROOT}/PWG/muon/FILTER_${filter}_rootlogon.C"
-  alirootPath="${ALICE_ROOT}"
-
-  if [ ! -f "$filterMacroFullPath" ]; then
-      echo "$filterMacroFullPath not found !"
-      return 6;
-  fi
-
-  if [ ! -f "$filterRootLogonFullPath" ]; then
-      echo "$filterRootLogonFullPath not found !"
-      return 7;
-  fi
+source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+echo "PATH=$PATH"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+#  root=$(which root)
 
   # strip the filtering bit and pieces from the source file name
   # before giving it to the filtering macro
   from=${1/.FILTER_/}
   from=${from/$filter/}
-  from=${from/_WITH_ALIROOT_/}
-  from=${from/$aliroot/}
+  from=${from/_WITH_ALIPHYSICS_/}
+  from=${from/$aliphysics/}
 
-  $root -n -q -b $macro+\(\"alien://$from\",\"$2\",\"FILTER_$filter\",\"$filterMacroFullPath\",\"$filterRootLogonFullPath\",\"$alirootPath\"\)
+ if [ -n "$DEBUG" ]; then
+		VLEVEL=1
+ else
+	VLEVEL=0
+ fi
+ 
+aaf-stage-and-filter --from alien://$from --to $2 --verbose $VLEVEL --filter $filter
 
-  return 0
+ return $?
 }
 
-# perform a copy using a Root macro
-function cpmacro_transfer()
+# perform a copy using a Root function
+function rootfile_transfer()
 {
   assert_alien_token 1
+
 
   source /tmp/gclient_env_$UID
 
   filter="$(echo $1 | grep FILTER)"
   if [ -n "$filter" ]; then
-    cpmacro_with_filter_transfer $1 $2
+rootfile_transfer_with_filter $1 $2
     return $?
   fi
 
-  source $DEFAULTROOT/bin/thisroot.sh
+ if [ ! -d "$SWBASEDIR/AliRoot/$DEFAULTALIROOT" ]; then
+    echo "Requested aliroot version not found : $SWBASEDIR/AliRoot/$DEFAULTALIROOT does not exist"
+    return 5;
+  fi
+
+  source /cvmfs/alice.cern.ch/etc/login.sh
+ source alienv setenv VO_ALICE@AliRoot::${DEFAULTALIROOT}
 
   root -n -b <<EOF 
-TGrid::Connect("alien://");
-TFile::Cp("alien://$1","$2");
-.q
+ TGrid::Connect("alien://");
+ Bool_t ok = TFile::Cp("alien://$1","$2");
+ if (!ok) gSystem->Exit(6);
+ .q
 EOF
-  
+ RCODE=$? 
 
-  return 3
+ return $RCODE
 }
 
 # the src url is from alien
@@ -187,12 +181,12 @@ function alien_transfer()
   fi
 
   if [ -n "$isarchive" ]; then
-    xrdcp_transfer $1 $2
+    archive_transfer $1 $2
     return $?
   fi
 
   if [ -n "$isroot" ]; then
-    cpmacro_transfer $1 $2
+	rootfile_transfer $1 $2
     return $?
   fi
 }
@@ -202,7 +196,6 @@ function alien_transfer()
 ###
 
 decode_src $1
-
 
 case "$src_proto" in
   "root")
