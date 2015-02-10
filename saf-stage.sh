@@ -6,8 +6,14 @@
 # PATH (to find xrdgsiproxy and alien-token-init commands)
 #
 
-ALIEN_USER=laphecet
-#ALIEN_USER=proof
+saf="$(hostname | grep nansaf)"
+
+if [ -n "$saf" ]; then
+	ALIEN_USER=proof
+else
+	ALIEN_USER=laphecet
+	echo "No SAF detected, using ALIEN_USER=$ALIEN_USER"
+fi
 
 SWBASEDIR="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages"
 DEFAULTALIROOT="v5-06-02"
