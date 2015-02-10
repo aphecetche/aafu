@@ -70,14 +70,6 @@ function decode_src()
   fi
 }
 
-# do a plain xrdcp transfer (xrootd protocol)
-function archive_transfer()
-{
-  echo "xrdcp transfer not yet implemented"
-	xrdcp $1 $2
-return $?
-}
-
 # perform a copy with a Root which can do a filtering as well
 function rootfile_transfer_with_filter()
 {
@@ -180,21 +172,38 @@ function alien_transfer()
     echo "isroot: $isroot"
   fi
 
-  if [ -n "$isarchive" ]; then
-    archive_transfer $1 $2
-    return $?
-  fi
+ hasanchor="$(echo $src | grep '#')"
+hasfilter="$(echo $src | grep 'FILTER_')"
 
-  if [ -n "$isroot" ]; then
-	rootfile_transfer $1 $2
+	if [ -n "$hasanchor" ]; then
+	if [ -n "$hasfilter" ]; then
+		echo "Cannot deal with both an anchor and a filter. Sorry about that." # this should be anyway forbidden by TDataSetManagerAliEn
+		return 7
+	fi
+	# remove the anchor
+	src="$(echo $src |  cut -d# -f1)"
+	echo "Anchor detected : removing it, i.e. using src = $src"
+fi
+
+if [ -z "$isarchive" -a -z "$isroot" ]; then
+	echo "Don't know how to deal with that file extension : $src"
+	return 10
+fi
+
+		rootfile_transfer $src $dest
     return $?
-  fi
+
 }
 
 ###
 ### main
 ###
 
+if [ $# -lt 2 ]; then
+	echo "Wrong number of arguments : usage is 'saf-stage src dest'"
+	exit 100
+fi
+	
 decode_src $1
 
 case "$src_proto" in
