@@ -6,3 +6,6 @@
 *.dSYM
 myaf
 myafDict*
+.*project
+.settings
+
