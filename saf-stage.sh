@@ -30,21 +30,31 @@ function assert_alien_token()
     echo "assert_alien_token"
   fi
 
-  proxyValidity=$(xrdgsiproxy info 2>&1 | grep "time left" | cut -d " " -f 6)
-  if [[ $proxyValidity == "" || $proxyValidity == "0h:0m:0s" ]]; then
-   xrdgsiproxy info
-    echo "No valid proxy found"
-    if [ "$tryToGetToken" -eq 1 ]; then
-	echo "Doing alien-token-init"
-	alien-token-init $ALIEN_USER
-	assert_alien_token 0
-    fi
-    exit 1
-  else
-  if [ -n "$DEBUG" ]; then
-    echo "Proxy still valid. Using it."
-  fi
-  fi
+if  [ ! -e "/tmp/gclient_token_$UID" ]; then
+	if [ "$tryToGetToken" -eq 1 ]; then
+		if [ -n "$DEBUG" ]; then
+			echo "no token found. Doing alien-token-init"
+		fi
+		alien-token-init $ALIEN_USER
+		assert_alien_token 0
+	else
+		echo "no token found. Bailing out."
+		exit 1
+	fi
+else
+	# check the token has still some time left
+	now=$(date +%s)
+	tokenvaliduntil=$(grep -i expiretime /tmp/gclient_token_$UID)
+	tokenvaliduntil=$(echo ${tokenvaliduntil// /}) # remove spaces
+	tokenvaliduntil=$(echo $tokenvaliduntil | cut -d '=' -f 2)
+	# add 30 minutes (should be enough even for the longest filters)
+	now=$((now+1800))
+	if [ $now -ge $tokenvaliduntil ]; then
+			echo "token will expire soon. get another one"
+		alien-token-init $ALIEN_USER
+		assert_alien_token 0
+	fi
+fi
 }
 
 # decode the src url
