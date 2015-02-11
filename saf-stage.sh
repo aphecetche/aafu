@@ -30,15 +30,15 @@ function assert_alien_token()
     echo "assert_alien_token"
   fi
 
-if  [ ! -e "/tmp/gclient_token_$UID" ]; then
+if  [ ! -e "/tmp/gclient_token_$UID" -o ! -e "/tmp/gclient_env_$UID" ]; then
 	if [ "$tryToGetToken" -eq 1 ]; then
 		if [ -n "$DEBUG" ]; then
-			echo "no token found. Doing alien-token-init"
+			echo "No token | env found. Doing alien-token-init"
 		fi
 		alien-token-init $ALIEN_USER
 		assert_alien_token 0
 	else
-		echo "no token found. Bailing out."
+		echo "No token found. Bailing out."
 		exit 1
 	fi
 else
