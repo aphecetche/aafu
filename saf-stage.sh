@@ -144,9 +144,12 @@ function rootfile_transfer()
 {
   assert_alien_token 1
 
-
-  source /tmp/gclient_env_$UID
-
+	if [ -e "/tmp/gclient_env_$UID" ]; then
+		source /tmp/gclient_env_$UID
+	else
+		echo "File /tmp/gclient_env_$UID not found !!!"
+	fi
+	
   filter="$(echo $1 | grep FILTER)"
   if [ -n "$filter" ]; then
 rootfile_transfer_with_filter $1 $2
