@@ -97,7 +97,7 @@ public:
   
   virtual void ShowDataSetList(const char* path="/*/*/*");
   
-  void UseFilter(const char* filtername) { fFilterName=filtername; }
+  void UseFilter(const char* filtername, const char* aliphysicsVersion) { fFilterName=filtername; fAliPhysics=aliphysicsVersion; }
 
   virtual void GetDataSetList(TList& list, const char* path="/*/*/*");
   
@@ -135,6 +135,8 @@ public:
 
   void GenerateReports();
   
+  void ForceUpdate(Bool_t force=kTRUE) { fForceUpdate = force; }
+  
 protected:
 
   TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;
@@ -165,8 +167,10 @@ protected:
   TString fHomeDir; // home dir of the proof-aaf installation
   TString fLogDir; // log dir of the proof-aaf installation
   Char_t fFileTypeToLookFor; // file type (f for file or l for link) to look for in GenerateReports
+  TString fAliPhysics; // AliPhysics version (vAN-YYYYMMDD) to be used for filtering
+  Bool_t fForceUpdate; // For dynamic dataset, force update of queries
   
-  ClassDef(VAF,9)
+  ClassDef(VAF,10)
 };
 
 #endif

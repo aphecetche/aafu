@@ -42,7 +42,7 @@ namespace
 //______________________________________________________________________________
 VAF::VAF(const char* master) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE),
 fSimpleRunNumbers(kFALSE), fFilterName(""), fMaster(master),
-fHomeDir(""),fLogDir(""), fFileTypeToLookFor('f')
+fHomeDir(""),fLogDir(""), fFileTypeToLookFor('f'), fAliPhysics(""), fForceUpdate(kFALSE)
 {
   if ( TString(master) != "unknown" )
   {

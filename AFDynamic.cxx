@@ -119,11 +119,36 @@ void AFDynamic::CreateDataSets(const std::vector<int>& runs,
   
   TList list;
   TFileCollection total;
+
+  TString extra = "";
+  
+  if ( ( fFilterName.Length()>0 && fAliPhysics.Length()==0 ) ||
+      (  fFilterName.Length()>0 && fAliPhysics.Length()==0 ) )
+  {
+    std::cerr << "Can only work with BOTH (or none) FilterName and AliPhysicsVersion set !" << std::endl;
+    return;
+  }
+
+  if ( fFilterName.Length() > 0  )
+  {
+    extra = ";Filter=";
+    extra += fFilterName;
+    extra += ";Aliphysics=";
+    extra += fAliPhysics;
+    extra.ReplaceAll(" ","");
+  }
+  
+  if ( fForceUpdate )
+  {
+    extra += ";ForceUpdate";
+  }
   
   for ( std::vector<int>::size_type i = 0; i < runs.size(); ++i )
   {
     TString query = CreateQueryString(runs[i],dataType,esdpass,aodPassNumber,basename);
   
+    query += extra;
+    
     std::cout << query.Data() << std::endl;
   
     if ( DryRun() )
