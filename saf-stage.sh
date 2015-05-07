@@ -87,6 +87,87 @@ function decode_src()
 }
 
 # perform a copy with a Root which can do a filtering as well
+# New version assuming the ?filter=xxxx&aliphysics=yyyy syntax
+
+function rootfile_transfer_with_filter_query()
+{
+
+  if [ -n "$DEBUG" ]; then
+    echo "rootfile_transfer_with_filter_query $1 $2"
+  fi
+
+n=$(expr index $1 '?')
+
+option=${1:$n}
+
+echo $option
+
+options=(${option//&/ })
+
+filter=""
+aliphysics=""
+
+for a in ${options[@]}
+do
+if [[ $a =~ ^filter= ]]; then
+filter=${a/filter=/}
+fi
+if [[ $a =~ ^aliphysics= ]]; then
+aliphysics=${a/aliphysics=/}
+fi
+
+done
+
+if [ -z "$filter" ] ; then
+echo "Missing filter name"
+return 5;
+fi
+
+if [ -z "$aliphysics" ] ; then
+echo "Missing aliphysics version"
+return 6;
+fi
+
+   if [ -n "$DEBUG" ]; then
+    echo "src=$1"
+    echo "dest=$2"
+    echo "filter=$filter"
+    echo "aliphysics=$aliphysics"
+  fi
+
+
+# check the aliphysics version request actually exists
+
+  if [ ! -d "$SWBASEDIR/AliPhysics/$aliphysics" ]; then
+    echo "Requested aliphysics version not found : $SWBASEDIR/AliPhysics/$aliphysics does not exist"
+    return 4;
+  fi
+
+# fine, the version exists, let's get the Root dependency and the env. correct
+
+  source /cvmfs/alice.cern.ch/etc/login.sh
+source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+echo "PATH=$PATH"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+#  root=$(which root)
+
+  # strip the filtering bit and pieces from the source file name
+  # before giving it to the filtering macro
+  from=${1/${option}/}
+  from=${from/\?}
+  
+ if [ -n "$DEBUG" ]; then
+		VLEVEL=1
+ else
+	VLEVEL=0
+ fi
+ 
+aaf-stage-and-filter --from alien://$from --to $2 --verbose $VLEVEL --filter $filter
+
+ return $?
+}
+
+# perform a copy with a Root which can do a filtering as well
 function rootfile_transfer_with_filter()
 {
 
@@ -155,6 +236,13 @@ function rootfile_transfer()
 rootfile_transfer_with_filter $1 $2
     return $?
   fi
+
+filter="$(echo $1 | grep 'filter=')"
+  if [ -n "$filter" ]; then
+	rootfile_transfer_with_filter_query $1 $2
+    return $?
+  fi
+
 
  if [ ! -d "$SWBASEDIR/AliRoot/$DEFAULTALIROOT" ]; then
     echo "Requested aliroot version not found : $SWBASEDIR/AliRoot/$DEFAULTALIROOT does not exist"
