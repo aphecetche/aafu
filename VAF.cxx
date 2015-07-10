@@ -786,9 +786,16 @@ void VAF::GetSearchAndBaseName(Int_t runNumber, const char* basename,
       {
         // aods in their own directory (not under runNumber/ESDs/pass... but directly under runNumber/pass... e.g. LHC12c pass1...)
         mbasename = Form("%s/%09d/%s/AOD/*",basename,runNumber,esdpass);
+        search = swhat.Data();        
+      }
+      else if ( aodPassNumber == -3 )
+      {
+        // aods in the same directory as the rest, but without "ESDs" in the path
+        mbasename = Form("%s/%09d/%s/*",basename,runNumber,esdpass);
         search = swhat.Data();
         
       }
+
     }
     if ( sdatatype.Contains("RAW") )
     {
