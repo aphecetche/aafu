@@ -151,6 +151,8 @@ void AFDynamic::CreateDataSets(const std::vector<int>& runs,
     
     std::cout << query.Data() << std::endl;
   
+    if ( fileLimit == 42 ) continue;
+    
     if ( DryRun() )
     {
         query += ";Mode=remote";
