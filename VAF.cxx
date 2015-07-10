@@ -247,7 +247,7 @@ void VAF::CopyFromRemote(const char* txtfile)
     else
     {
   	  TFile::Cp(line,file.Data());
-      if ( TString(line).Contains("root_archive.zip") )
+      if ( TString(line).EndsWith(".zip") )
       {
         gSystem->Exec(Form("unzip %s -d %s",file.Data(),gSystem->DirName(file.Data())));
         gSystem->Exec(Form("rm %s",file.Data()));
