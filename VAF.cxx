@@ -1,41 +1,43 @@
 #include "VAF.h"
 
+#include "AFWebMaker.h"
 #include "Riostream.h"
+#include "TClass.h"
+#include "TCollection.h"
+#include "TDatime.h"
+#include "TEnv.h"
+#include "TFile.h"
 #include "TFileCollection.h"
 #include "TFileInfo.h"
+#include "TFileMerger.h"
+#include "TGrid.h"
 #include "TGrid.h"
 #include "TGridCollection.h"
 #include "TGridResult.h"
 #include "THashList.h"
+#include "TMap.h"
+#include "TMath.h"
+#include "TMethodCall.h"
+#include "TObjArray.h"
+#include "TObjString.h"
+#include "TProof.h"
+#include "TProof.h"
 #include "TString.h"
 #include "TSystem.h"
+#include "TSystem.h"
+#include "TTree.h"
 #include "TUrl.h"
-#include <set>
-#include "TProof.h"
-#include "TFileMerger.h"
-#include "TEnv.h"
+#include <algorithm>
+#include <cassert>
 #include <list>
 #include <map>
+#include <set>
 #include <string>
-#include <algorithm>
-#include "TCollection.h"
-#include "TObjString.h"
-#include "TObjArray.h"
-#include "TProof.h"
-#include "TMap.h"
-#include "TDatime.h"
-#include "TFile.h"
-#include "TClass.h"
-#include "TMethodCall.h"
-#include <cassert>
-#include "TSystem.h"
-#include "TGrid.h"
-#include "AFWebMaker.h"
-#include "TTree.h"
 
 namespace
 {
   Double_t byte2GB(1024*1024*1024);
+  Double_t byte2MB(1024*1024);
   
 }
 
@@ -1393,6 +1395,86 @@ int VAF::ReadTree(const char* treename)
   }
   
   return nentries;
+}
+
+//______________________________________________________________________________
+void VAF::TestDataSets(const char* txtfile, Bool_t requestStagingIfNotStaged)
+{
+  /// Check if the datasets in the txtfile are already staged.
+  /// If not, and if requestStagingIfNotStaged is true, will launch a staging request
+  
+  if (!Connect("masteronly")) return;
+  
+  std::ifstream in(gSystem->ExpandPathName(txtfile));
+  std::string line;
+  
+  std::vector<std::string> msgs;
+  std::vector<std::string> requests;
+  
+  Long64_t totalSize(0);
+  
+  // loop on text file
+  while (std::getline(in,line))
+  {
+    TFileCollection* fc = gProof->GetDataSet(line.c_str());
+    if (!fc)
+    {
+      msgs.push_back(Form("%s does not exist (query return nothing)",line.c_str()));
+      continue;
+    }
+    
+    if ( fc->GetNStagedFiles() == 0 )
+    {
+      delete fc;
+      std::string lineup = line;
+      
+      // if nothing staged yet, check first if it's not the caching
+      // mechanism that is giving us an outdated answer
+      lineup += ";ForceUpdate";
+      
+      fc = gProof->GetDataSet(lineup.c_str());
+      
+      if ( fc->GetNStagedFiles() == 0 )
+      {
+        // no, that's not the cache's fault, the files are actually not staged.
+        // so they'll need to be requested
+        requests.push_back(line.c_str());
+      }
+    }
+    
+    totalSize += fc->GetTotalSize();
+    
+    msgs.push_back(Form("%s staged %4.0f %% nfiles %4lld nstaged %4lld size %6d MB",line.c_str(),fc->GetStagedPercentage(),fc->GetNFiles(),fc->GetNStagedFiles(),TMath::Nint(fc->GetTotalSize()/byte2MB*1.0)));
+    
+  }
+
+  // printout
+  std::vector<std::string>::size_type i;
+
+  for ( i = 0 ; i < msgs.size(); ++i )
+  {
+    std::cout << msgs[i] << std::endl;
+  }
+
+  std::cout << Form("Total size %7.3f GB",totalSize/byte2GB) << std::endl;
+  
+  if (requests.size())
+  {
+    if (!requestStagingIfNotStaged)
+    {
+      std::cout << "The following staging requests would have to be performed" << std::endl;
+    }
+    
+    for ( i = 0 ; i < requests.size(); ++i )
+    {
+      std::cout << requests[i] << std::endl;
+      if (requestStagingIfNotStaged)
+      {
+        gProof->RequestStagingDataSet(requests[i].c_str());
+      }
+    }
+  }
+
 }
 
 //______________________________________________________________________________

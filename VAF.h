@@ -47,6 +47,8 @@ public:
   
   TString LogDir() const { return fLogDir; }
   
+  void TestDataSets(const char* txtfile, Bool_t requestStagingIfNotStaged=kFALSE);
+  
   virtual void CreateDataSets(const std::vector<int>& runs,
                               const char* dataType = "aodmuon",
                               const char* esdpass="pass2",
@@ -83,7 +85,7 @@ public:
   
   void MergeDataSets(const char* dsList);
   
-  void CompareRunLists(const char* runlist1, const char* runlist2);
+  static void CompareRunLists(const char* runlist1, const char* runlist2);
   
   void RemoveDataFromOneDataSet(const char* dsName, std::ofstream& out);
   void RemoveDataFromOneDataSet(const char* dsName);
@@ -149,7 +151,7 @@ protected:
                             const char* esdpass, Int_t aodPassNumber,
                             TString& mbasename, TString& search) const;
 
-  void ReadIntegers(const char* filename, std::vector<int>& integers);
+  static void ReadIntegers(const char* filename, std::vector<int>& integers);
   
   int ReadTree(const char* treename);
   
