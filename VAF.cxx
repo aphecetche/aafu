@@ -130,6 +130,35 @@ void VAF::ClearPackages()
 }
 
 //______________________________________________________________________________
+void VAF::UpdateConnectString()
+{
+  if ( fConnect.Contains("@")) return;
+  
+  std::ifstream in(Form("/tmp/gclient_token_%d",gSystem->GetUid()));
+  TString s;
+  TString user;
+  while (s.ReadLine(in))
+  {
+    if (s.BeginsWith("User"))
+    {
+      TObjArray* a = s.Tokenize('=');
+      user = static_cast<TObjString*>(a->Last())->String();
+      user = user(1,user.Length()-1);
+      delete a;
+      break;
+    }
+  }
+  if (user.Length())
+  {
+    TString tmp = fConnect;
+    fConnect = user;
+    fConnect += "@";
+    fConnect += tmp;
+  }
+}
+
+
+//______________________________________________________________________________
 Bool_t VAF::Connect(const char* option)
 {
   // FIXME: how to tell, for an existing connection, which option was used ?
@@ -138,30 +167,7 @@ Bool_t VAF::Connect(const char* option)
   
   if ( fConnect.Length()==0 ) return kFALSE;
   
-  if (!fConnect.Contains("@"))
-  {
-    std::ifstream in(Form("/tmp/gclient_token_%d",gSystem->GetUid()));
-    TString s;
-    TString user;
-    while (s.ReadLine(in))
-    {
-      if (s.BeginsWith("User"))
-      {
-        TObjArray* a = s.Tokenize('=');
-        user = static_cast<TObjString*>(a->Last())->String();
-        user = user(1,user.Length()-1);
-        delete a;
-        break;
-      }
-    }
-    if (user.Length())
-    {
-      TString tmp = fConnect;
-      fConnect = user;
-      fConnect += "@";
-      fConnect += tmp;
-    }
-  }
+  UpdateConnectString();
   
   TProof::Open(fConnect.Data(),option);
   
@@ -1168,6 +1174,8 @@ void VAF::RemoveDataSets(const char* dslist)
 //______________________________________________________________________________
 void VAF::Reset(const char* option)
 {
+  UpdateConnectString();
+  
   TString soption(option);
   soption.ToUpper();
   Bool_t hard(kFALSE);
@@ -1176,7 +1184,7 @@ void VAF::Reset(const char* option)
     hard = kTRUE;
   }
   
-  TProof::Reset(fConnect.Data(),hard);
+  TProof::Mgr(fConnect.Data())->Reset(hard);
 }
 
 //______________________________________________________________________________
