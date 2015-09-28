@@ -33,6 +33,9 @@
 #include <map>
 #include <set>
 #include <string>
+#include "TMath.h"
+#include "TRandom3.h"
+#include "TKey.h"
 
 namespace
 {
@@ -539,6 +542,66 @@ void VAF::GetDataSetsSize(const char* dsList, Bool_t showDetails)
   }
   
   cout << Form("ndatasets=%3d nfiles = %5d | ncorrupted = %5d | size = %7.2f GB",n,totalFiles,totalCorruptedFiles,totalSize/byte2GB) << endl;
+}
+
+//______________________________________________________________________________
+void VAF::EmergencyRemoval()
+{
+  /// Emergency removal of files being staged...
+  
+  if (!Connect("workers=1x")) return;
+
+  TString s = GetStringFromExec(".! find /data/alice/data/2011/LHC11h/000170387/raw -name *.root");
+  
+  TObjArray* a = s.Tokenize("\n");
+  TObjString* os;
+  TIter next(a);
+  
+  TObjArray cmds;
+  cmds.SetOwner(kTRUE);
+  
+  while ( ( os = static_cast<TObjString*>(next())) )
+  {
+    TString line = os->String();
+    
+    if ( !line.Contains("LHC11h") ) continue;
+    
+    TString cmd;
+    
+    line.ReplaceAll("/data/alice","/alice");
+    
+    cmd.Form("xrd nansafmaster2 rm %s",line.Data());
+    
+    cmds.Add(new TObjString(cmd));
+  }
+  
+  delete a;
+
+  CloseConnection();
+  
+  Connect("masteronly");
+  
+  TIter nextCmd(&cmds);
+  
+  while ( ( os = static_cast<TObjString*>(nextCmd())) )
+  {
+    std::cout << os->String().Data() << std::endl;
+    gProof->Exec(Form(".! %s",os->String().Data()));
+  }
+  
+  CloseConnection();
+
+}
+
+//______________________________________________________________________________
+void VAF::CloseConnection()
+{
+  if ( gProof )
+  {
+    gProof->Close("s");
+    delete gProof;
+    gProof = 0x0;
+  }
 }
 
 //______________________________________________________________________________
@@ -1367,6 +1430,7 @@ void VAF::ShowConfig()
      files.push_back("%s/xrootd/etc/xrootd/xrootd.cf");
      files.push_back("%s/proof/xproofd/afdsmgrd.conf");
      files.push_back("%s/xrootd/scripts/frm-stage-with-xrddm.sh");
+     files.push_back("%s/xrootd/scripts/frm-stage-with-saf-stage.sh");
      files.push_back("/usr/local/xrddm/etc/xrddm_env.sh");
      files.push_back("/usr/local/xrddm/etc/xrddm.cfg");
      
@@ -1431,7 +1495,7 @@ void VAF::TestDataSets(const char* txtfile, Bool_t requestStagingIfNotStaged)
       continue;
     }
     
-    if ( fc->GetNStagedFiles() == 0 )
+    if ( fc->GetNStagedFiles() == 0 || fc->GetStagedPercentage() < 100.0 )
     {
       delete fc;
       std::string lineup = line;
@@ -1442,7 +1506,7 @@ void VAF::TestDataSets(const char* txtfile, Bool_t requestStagingIfNotStaged)
       
       fc = gProof->GetDataSet(lineup.c_str());
       
-      if ( fc->GetNStagedFiles() == 0 )
+      if ( fc->GetNStagedFiles() == 0 || fc->GetStagedPercentage() < 100.0 )
       {
         // no, that's not the cache's fault, the files are actually not staged.
         // so they'll need to be requested
@@ -1520,3 +1584,288 @@ int VAF::TestROOTFile(const char* file, const char* treename)
   if (rv<0) std::cout << "TestROOTFile : " << file << " has a problem" << std::endl;
   return rv;
 }
+
+//______________________________________________________________________________
+void VAF::FindDuplicates(const char* filelist, int format)
+{
+  /// Get a list of duplicated files from an AFWebMaker output
+  /// Format=1 of the filelist ASCII file is :
+  ///
+  /// Day, dd.mm.yyyy hh:mm:ss size filefullpath server-name
+  ///
+  /// e.g.
+  ///
+  /// Mon, 16.03.2015 17:14:01 97949606 /alice/data/2015/LHC15c/000216293/raw/15000216293019.93.FILTER_RAWMUON_WITH_ALIPHYSICS_vAN-20150315.root SAF-nansaf01
+  ///
+  /// Format=2 of the filelist ASCII file is :
+  ///
+  /// logfilename:Day Month dd hh:mm:ss timezone year "/usr/local/saf-stage/bin/saf-stage.sh with parameters" source dest "returns xxx"
+  ///
+  /// e.g.
+  ///
+  /// nansaf01.in2p3.fr-saf_stage.log:Tue Sep  1 22:30:34 CEST 2015 /usr/local/saf-stage/bin/saf-stage.sh with parameters /alice/data/2011/LHC11h/000170387/raw/11000170387015.177.root /data/alice/data/2011/LHC11h/000170387/raw/11000170387015.177.root.anew returns 0
+  
+  new TRandom3;
+  
+  std::ifstream in(gSystem->ExpandPathName(filelist));
+  std::string line;
+  TObjArray* a;
+  Long64_t size(0);
+  std::map<std::string,std::string> fileServers;
+  std::map<std::string,Long64_t> fileSize;
+  std::vector<std::string> dup;
+  
+  std::ofstream zout("remove-zeros.sh");
+
+  int count(0);
+  
+  while ( std::getline(in,line) )
+  {
+    std::cout << Form("%6d %s",++count,line.c_str()) << std::endl;
+    
+//    if ( !TString(line).Contains("169099")) continue;
+    
+    a = TString(line.c_str()).Tokenize(" ");
+
+    if ( a->GetLast()<5 )
+    {
+      a->Print();
+      continue;
+    }
+    
+    TObjString* sfile;
+    TObjString* ssize;
+    TObjString* sserver;
+    int thisSize = 0;
+    
+    if ( format ==1 )
+    {
+      sfile = static_cast<TObjString*>(a->At(4));
+    
+      ssize = static_cast<TObjString*>(a->At(3));
+    
+      sserver = static_cast<TObjString*>(a->At(5));
+      
+      thisSize = ssize->String().Atoi();
+      
+    }
+    else
+    {
+      sfile = static_cast<TObjString*>(a->At(9));
+      
+      sserver = static_cast<TObjString*>(a->At(0));
+    }
+    
+    TString server = sserver->String();
+    
+    if ( format == 1 )
+    {
+      server.ReplaceAll("SAF-","");
+    }
+    else
+      
+    {
+      std::cout << "HERE:" << server.Data() << "!" << std::endl;
+      Int_t i = server.Index('.');
+      server = server(0,i);
+      std::cout << ">>>" << server.Data() << "!" << std::endl;
+    }
+
+    if (thisSize==0 && format==1)
+    {
+      zout << Form("echo \"xrd %s rm %s\"",server.Data(),sfile->String().Data()) << std::endl;
+      
+      continue;
+    }
+
+    size += thisSize;
+
+    fileServers[sfile->String().Data()] += server;
+    fileServers[sfile->String().Data()] += " ";
+    
+    fileSize[sfile->String().Data()] = thisSize;
+    
+    delete a;
+  }
+  
+  zout.close();
+  
+  std::map<std::string,std::string>::const_iterator it;
+  Long64_t dupSize(0);
+  int ndup(0);
+  
+  std::ofstream out("remove-duplicates.sh");
+
+  for ( it = fileServers.begin(); it != fileServers.end(); ++it )
+  {
+    a = TString(it->second.c_str()).Tokenize(" ");
+    
+      if ( a->GetLast() > 0 )
+      {
+        std::cout << it->first.c_str() << " -> " << it->second << std::endl;
+        // pick one (randomly) to be the one we keep
+        
+        int n = TMath::Nint(gRandom->Uniform(0,a->GetLast()));
+        
+        for ( int i = 0; i <= a->GetLast(); ++i )
+        {
+          if (i == n ) continue;
+          
+          TString server = static_cast<TObjString*>(a->At(i))->String();
+          
+          server.ReplaceAll("SAF-","");
+
+          out << Form("echo \"xrd %s rm %s\"",server.Data(),it->first.c_str()) << std::endl;
+
+          dup.push_back(Form("%s:%s",it->first.c_str(),server.Data()));
+        }
+        
+        dupSize += fileSize[it->first.c_str()];
+        
+        ++ndup;
+      }
+    delete a;
+  }
+
+  out.close();
+  
+  std::cout << std::string(80,'_') << std::endl;
+
+  std::cout << "Selected duplicates : " << std::endl;
+  
+  std::cout << std::string(80,'_') << std::endl;
+  
+  std::sort(dup.begin(),dup.end());
+  
+  for ( std::vector<std::string>::size_type i = 0; i < dup.size(); ++i )
+  {
+    std::cout << dup[i].c_str() << std::endl;
+    
+  }
+  std::cout << dup.size() << std::endl;
+
+  
+  std::cout << Form("%d duplicates. Their size is %7.2f GB (compared to a total size of %7.2f GB) ",ndup,dupSize/byte2GB,size/byte2GB) << std::endl;
+  
+  
+}
+
+//_____________________________________________________________________________
+void VAF::GetBranchSizes(TTree* tree, Long64_t& zipBytes, Long64_t& totBytes, TObjArray* lines)
+{
+  TObjArray* tb = tree->GetListOfBranches();
+  
+  if (!tb) return;
+  
+  tree->GetEntry(0);
+  
+  totBytes = tree->GetTotBytes();
+  zipBytes = tree->GetZipBytes();
+  
+  lines->Add(new TObjString(Form("== Tree %20s TotalBytes %4.0f KB AfterCompression %4.0f KB Nentries %lld",
+                                 tree->GetName(),totBytes/1024.0,zipBytes/1024.0,tree->GetEntries())));
+  
+  TBranch* b;
+  TIter next(tb);
+  
+  Float_t check100(0.0);
+  
+  while ( ( b = static_cast<TBranch*>(next()) ) )
+  {
+    b->GetEntry(0);
+    
+    TString msg(Form("      %20s TotalBytes %10d (%4.0f %%) AfterCompression %10d (%4.0f %%)",
+                     b->GetName(),
+                     (Int_t)b->GetTotBytes("*"),
+                     (totBytes>0) ? b->GetTotBytes("*")*100.0/totBytes : 0,
+                     (Int_t)b->GetZipBytes("*"),
+                     (zipBytes>0) ? b->GetZipBytes("*")*100.0/zipBytes : 0
+                     ));
+    
+    check100 += (zipBytes>0) ? b->GetZipBytes("*")*100.0/zipBytes : 0;
+    
+    lines->Add(new TObjString(msg));
+  }
+  
+  TBranch* br = tree->BranchRef();
+  
+  if (br)
+  {
+    TString msg(Form("      %20s AfterCompression %10d (%5.2f %% of file size)",
+                     br->GetName(),(Int_t)br->GetZipBytes("*"),
+                     br->GetZipBytes("*")*100.0/zipBytes
+                     ));
+    lines->Add(new TObjString(msg));
+  }
+  
+  lines->Add(new TObjString(Form("check100 = %f",check100)));
+  
+}
+
+//_____________________________________________________________________________
+void VAF::PrintB(const TObjArray& lines)
+{
+  TIter next(&lines);
+  TObjString* str;
+  while ( ( str = static_cast<TObjString*>(next()) ) )
+  {
+    if ( str->String().BeginsWith("==") ) std::cout << std::endl << std::endl;
+    std::cout << str->String() << std::endl;
+  }
+}
+
+
+//______________________________________________________________________________
+void VAF::RootFileSize(const char* filename, Bool_t showBranches)
+{
+    if (TString(filename).Contains("alien://"))
+    {
+      TGrid::Connect("alien://");
+    }
+    
+    TFile* file = TFile::Open(filename);
+    
+    if (!file) return;
+    
+    Long64_t fileSize = file->GetSize();
+    
+    TIter nextKey(file->GetListOfKeys());
+    TKey* key;
+    
+    TObjArray lines;
+    lines.SetOwner(kTRUE);
+    
+    TObjArray branches;
+    branches.SetOwner(kTRUE);
+    
+    while ( (key=static_cast<TKey*>(nextKey())) )
+    {
+      Long64_t diskSize = key->GetNbytes();
+      Long64_t memSize = key->GetObjlen();
+      
+      if ( TString(key->GetClassName()) == "TTree" )
+      {
+        TTree* t = static_cast<TTree*>(key->ReadObj());
+        GetBranchSizes(t,diskSize,memSize,&branches);
+      }
+      
+      TString msg(Form("%20s size %10lld bytes on disk (in memory %10lld) (%5.2f %% of total file size)",
+                       key->GetName(),
+                       diskSize,
+                       memSize,
+                       100.0*diskSize/fileSize));
+      
+      lines.Add(new TObjString(msg));    
+    }
+    
+    if ( showBranches ) 
+    {
+      PrintB(branches);
+      std::cout << std::endl << std::endl;
+    }
+    
+    PrintB(lines);
+    
+    delete file;
+  }
+

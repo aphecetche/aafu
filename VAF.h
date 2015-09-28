@@ -11,6 +11,10 @@ class TMap;
 #include "TDatime.h"
 #include "Riostream.h"
 #include <map>
+
+class TTree;
+class TObjArray;
+
 ///
 /// Interface for class dealing with analysis facility datasets
 ///
@@ -139,6 +143,14 @@ public:
   
   void ForceUpdate(Bool_t force=kTRUE) { fForceUpdate = force; }
   
+  static void FindDuplicates(const char* filelist, int format=1);
+  
+  void EmergencyRemoval();
+  
+  void CloseConnection();
+  
+  static void RootFileSize(const char* filename, Bool_t showBranches=kTRUE);
+
 protected:
 
   TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;
@@ -156,6 +168,13 @@ protected:
   int ReadTree(const char* treename);
   
   int TestROOTFile(const char* file, const char* treename);
+  
+  static void GetBranchSizes(TTree* tree, Long64_t& zipBytes, Long64_t& totBytes, TObjArray* lines);
+
+  static void PrintB(const TObjArray& lines);
+  
+private:
+  void UpdateConnectString();
   
 protected:
   TString fConnect; // Connect string (afmaster)
