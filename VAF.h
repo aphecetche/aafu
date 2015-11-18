@@ -151,8 +151,8 @@ public:
   
   static void RootFileSize(const char* filename, Bool_t showBranches=kTRUE);
 
-protected:
-
+  void Stager3(const char* query, Bool_t dryRun=kTRUE);
+  
   TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;
 
   TString GetFileType(const char* path) const;
@@ -165,14 +165,16 @@ protected:
 
   static void ReadIntegers(const char* filename, std::vector<int>& integers);
   
-  int ReadTree(const char* treename);
+  static int ReadTree(const char* treename);
   
-  int TestROOTFile(const char* file, const char* treename);
+  static int TestROOTFile(const char* file, const char* treename);
   
   static void GetBranchSizes(TTree* tree, Long64_t& zipBytes, Long64_t& totBytes, TObjArray* lines);
 
   static void PrintB(const TObjArray& lines);
   
+  static void LocalMerge(const char* filelist, const char* output="mergedfile.root");
+
 private:
   void UpdateConnectString();
   

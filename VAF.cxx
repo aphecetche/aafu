@@ -136,7 +136,12 @@ void VAF::ClearPackages()
 void VAF::UpdateConnectString()
 {
   if ( fConnect.Contains("@")) return;
-  
+
+  if ( fConnect.Contains("pod") ) 
+{
+fConnect="pod://";
+return;
+}  
   std::ifstream in(Form("/tmp/gclient_token_%d",gSystem->GetUid()));
   TString s;
   TString user;
@@ -245,8 +250,12 @@ void VAF::CopyFromRemote(const char* txtfile)
       }
       
     }
+  
   	TString file(url.GetFile());
-  	
+  
+    file.ReplaceAll("/alice","/home/laphecet/data/alice");	
+    file.ReplaceAll("/PWG3","/home/laphecet/PWG3");
+
   	TString dir(gSystem->DirName(file));
   	
   	gSystem->mkdir(dir.Data(),kTRUE);
@@ -257,10 +266,16 @@ void VAF::CopyFromRemote(const char* txtfile)
     }
     else
     {
+      std::cout << "TFile::Cp(" << line << "," << file.Data() << ")" << std::endl;
   	  TFile::Cp(line,file.Data());
       if ( TString(line).EndsWith(".zip") )
       {
         gSystem->Exec(Form("unzip %s -d %s",file.Data(),gSystem->DirName(file.Data())));
+        gSystem->Exec(Form("rm %s",file.Data()));
+      }
+      if (strlen(url.GetAnchor())>0)
+      {
+        gSystem->Exec(Form("unzip %s %s -d %s",file.Data(),url.GetAnchor(),gSystem->DirName(file.Data())));
         gSystem->Exec(Form("rm %s",file.Data()));
       }
   	}
