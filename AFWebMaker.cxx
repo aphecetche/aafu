@@ -1040,7 +1040,17 @@ std::string AFWebMaker::GetFileType(const std::string& path) const
   {
     file = "FILTER_RAWMUON";
   }
-  
+
+  if ( strstr(file.c_str(),"FILTER_ESDMUON") )
+  {
+    file = "FILTER_ESDMUON";
+  }
+
+  if ( strstr(file.c_str(),"FILTER_AODMUONWITHTRACKLETS") )
+  {
+    file = "FILTER_AODMUONWITHTRACKLETS";
+  }
+
   if ( !strncmp(file.c_str(),"15000",5) )
   {
     file = "RAW 2015";
@@ -1133,6 +1143,8 @@ void AFWebMaker::GroupFileInfoList()
     const AFFileInfo& fileInfo = (*it);
 
     std::string file = GetFileType(fileInfo.fFullPath.c_str());
+    
+    DEBUG(2) << "path=" << fileInfo.fFullPath << " filetype=" << file << std::endl;
     
     // first group by file type
     std::string ft("FILETYPE:");
