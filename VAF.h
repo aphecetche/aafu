@@ -151,8 +151,6 @@ public:
   
   static void RootFileSize(const char* filename, Bool_t showBranches=kTRUE);
 
-  void Stager3(const char* query, Bool_t dryRun=kTRUE);
-  
   TString DecodeDataType(const char* dataType, TString& what, TString& treeName, TString& anchor, Int_t aodPassNumber) const;
 
   TString GetFileType(const char* path) const;
@@ -173,8 +171,6 @@ public:
 
   static void PrintB(const TObjArray& lines);
   
-  static void LocalMerge(const char* filelist, const char* output="mergedfile.root");
-
 private:
   void UpdateConnectString();
   

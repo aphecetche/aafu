@@ -253,8 +253,8 @@ void VAF::CopyFromRemote(const char* txtfile)
   
   	TString file(url.GetFile());
   
-    file.ReplaceAll("/alice","/home/laphecet/data/alice");	
-    file.ReplaceAll("/PWG3","/home/laphecet/PWG3");
+//    file.ReplaceAll("/alice","/home/laphecet/data/alice");	
+//    file.ReplaceAll("/PWG3","/home/laphecet/PWG3");
 
   	TString dir(gSystem->DirName(file));
   	
