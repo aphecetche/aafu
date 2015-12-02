@@ -55,6 +55,13 @@ else
 		assert_alien_token 0
 	fi
 fi
+
+if [ -e "/tmp/gclient_env_$UID" ]; then
+source /tmp/gclient_env_$UID
+else
+echo "File /tmp/gclient_env_$UID not found !!!"
+fi
+
 }
 
 # decode the src url
@@ -135,7 +142,6 @@ fi
     echo "aliphysics=$aliphysics"
   fi
 
-
 # check the aliphysics version request actually exists
 
   if [ ! -d "$SWBASEDIR/AliPhysics/$aliphysics" ]; then
@@ -146,9 +152,12 @@ fi
 # fine, the version exists, let's get the Root dependency and the env. correct
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
-echo "PATH=$PATH"
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+  source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+
+  assert_alien_token 1
+
+  echo "PATH=$PATH"
+  echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 #  root=$(which root)
 
   # strip the filtering bit and pieces from the source file name
@@ -197,9 +206,13 @@ function rootfile_transfer_with_filter()
 # fine, the version exists, let's get the Root dependency and the env. correct
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
-echo "PATH=$PATH"
-echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+  source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+
+  assert_alien_token 1
+
+  echo "PATH=$PATH"
+  echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
 #  root=$(which root)
 
   # strip the filtering bit and pieces from the source file name
@@ -223,26 +236,17 @@ aaf-stage-and-filter --from alien://$from --to $2 --verbose $VLEVEL --filter $fi
 # perform a copy using a Root function
 function rootfile_transfer()
 {
-  assert_alien_token 1
-
-	if [ -e "/tmp/gclient_env_$UID" ]; then
-		source /tmp/gclient_env_$UID
-	else
-		echo "File /tmp/gclient_env_$UID not found !!!"
-	fi
-	
   filter="$(echo $1 | grep FILTER)"
   if [ -n "$filter" ]; then
-rootfile_transfer_with_filter $1 $2
+    rootfile_transfer_with_filter $1 $2
     return $?
   fi
 
-filter="$(echo $1 | grep 'filter=')"
+  filter="$(echo $1 | grep 'filter=')"
   if [ -n "$filter" ]; then
-	rootfile_transfer_with_filter_query $1 $2
+    rootfile_transfer_with_filter_query $1 $2
     return $?
   fi
-
 
  if [ ! -d "$SWBASEDIR/AliRoot/$DEFAULTALIROOT" ]; then
     echo "Requested aliroot version not found : $SWBASEDIR/AliRoot/$DEFAULTALIROOT does not exist"
@@ -250,15 +254,17 @@ filter="$(echo $1 | grep 'filter=')"
   fi
 
   source /cvmfs/alice.cern.ch/etc/login.sh
- source alienv setenv VO_ALICE@AliRoot::${DEFAULTALIROOT}
+  source alienv setenv VO_ALICE@AliRoot::${DEFAULTALIROOT}
 
-  root -n -b <<EOF 
- TGrid::Connect("alien://");
- Bool_t ok = TFile::Cp("alien://$1","$2");
- if (!ok) gSystem->Exit(6);
- .q
-EOF
- RCODE=$? 
+  assert_alien_token 1
+
+  root -n -b <<EOF
+  TGrid::Connect("alien://");
+  Bool_t ok = TFile::Cp("alien://$1","$2");
+  if (!ok) gSystem->Exit(6);
+  .q
+ EOF
+ RCODE=$?
 
  return $RCODE
 }
