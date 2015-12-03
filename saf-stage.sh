@@ -263,7 +263,7 @@ function rootfile_transfer()
   Bool_t ok = TFile::Cp("alien://$1","$2");
   if (!ok) gSystem->Exit(6);
   .q
- EOF
+EOF
  RCODE=$?
 
  return $RCODE
