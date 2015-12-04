@@ -57,9 +57,11 @@ else
 fi
 
 if [ -e "/tmp/gclient_env_$UID" ]; then
-source /tmp/gclient_env_$UID
+# source /tmp/gclient_env_$UID
+# source a selected part of the /tmp/gclient_env_$UID (i.e. ignoring the LD_LIBRARY_PATH setting)
+  eval "$(sed '/LD_LIBRARY_PATH/d' /tmp/gclient_env_$UID)"
 else
-echo "File /tmp/gclient_env_$UID not found !!!"
+  echo "File /tmp/gclient_env_$UID not found !!!"
 fi
 
 }
@@ -156,9 +158,7 @@ fi
 
   assert_alien_token 1
 
-  echo "PATH=$PATH"
-  echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-#  root=$(which root)
+  source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
 
   # strip the filtering bit and pieces from the source file name
   # before giving it to the filtering macro
