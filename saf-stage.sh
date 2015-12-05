@@ -19,6 +19,91 @@ SWBASEDIR="/cvmfs/alice.cern.ch/x86_64-2.6-gnu-4.1.2/Packages"
 DEFAULTALIROOT="v5-06-02"
 DEBUG=true
 
+# removes from a $PATH-like variable all the paths containing at least one of the specified files:
+# variable name is the first argument, and file names are the remaining arguments
+function AliRemovePaths() {
+
+  local RetainPaths="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/usr/local/sbin:/usr/local/lib:$HOME/bin"
+  local VARNAME=$1
+  shift
+  local DIRS=`eval echo \\$$VARNAME`
+  local NEWDIRS=""
+  local OIFS="$IFS"
+  local D F KEEPDIR
+  local RemovePathsDebug=0
+  local DebugPrompt="${Cc}RemovePaths>${Cz} "
+  IFS=:
+
+  [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}${Cm}variable:${Cz} $VARNAME"
+
+  for D in $DIRS ; do
+
+    [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}  directory $D"
+
+    KEEPDIR=1
+    D=$( cd "$D" 2> /dev/null && pwd || echo "$D" )
+    if [[ -d "$D" ]] ; then
+
+      # condemn directory if one of the given files is there
+      for F in $@ ; do
+        if [[ -e "$D/$F" ]] ; then
+          [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}    remove it: found one of the given files"
+          KEEPDIR=0
+          break
+        elif [ -e "${D}"/tgt_*/"${F}" ] ; then
+          [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}    remove it: a tgt_ subdirectory contains one of the given files"
+          KEEPDIR=0
+          break
+        fi
+      done
+
+      # retain directory if it is in RetainPaths (may revert)
+      for K in $RetainPaths ; do
+        if [[ "$D" == "$( cd "$K" 2> /dev/null ; pwd )" ]] ; then
+          [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}    kept: is a system path"
+          KEEPDIR=1
+          break
+        fi
+      done
+
+    else
+      [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}    remove it: cannot access it"
+      KEEPDIR=0
+    fi
+    if [[ $KEEPDIR == 1 ]] ; then
+      [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}    ${Cg}final decision: keeping${Cz}"
+      [[ "$NEWDIRS" == "" ]] && NEWDIRS="$D" || NEWDIRS="${NEWDIRS}:${D}"
+    else
+      [[ $RemovePathsDebug == 1 ]] && echo -e "${DebugPrompt}    ${Cr}final decision: discarding${Cz}"
+    fi
+
+  done
+
+  IFS="$OIFS"
+
+  eval export $VARNAME="$NEWDIRS"
+  AliCleanPathList $VARNAME
+
+}
+
+# cleans leading, trailing and double colons from the variable whose name is passed as the only arg
+function AliCleanPathList() {
+  local VARNAME="$1"
+  local STR=`eval echo \\$$VARNAME`
+  local PREV_STR
+  while [[ "$PREV_STR" != "$STR" ]] ; do
+    PREV_STR="$STR"
+    STR=`echo "$STR" | sed s/::/:/g`
+  done
+  STR=${STR#:}
+  STR=${STR%:}
+  if [[ $STR == '' ]] ; then
+    unset $VARNAME
+  else
+    eval export $VARNAME=\"$STR\"
+  fi
+}
+
 # insure we get a valid token
 function assert_alien_token()
 {
@@ -158,7 +243,19 @@ fi
 
   assert_alien_token 1
 
+  echo "after assert_alien_token"
+  echo "PATH=$PATH"
+  echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+# here be sure to redefine the LD_LIBRARY_PATH and PATH...
+
   source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+
+  echo "after source alienv again..."
+  echo "PATH=$PATH"
+  echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+#  root=$(which root)
 
   # strip the filtering bit and pieces from the source file name
   # before giving it to the filtering macro
@@ -318,6 +415,17 @@ if [ $# -lt 2 ]; then
 fi
 	
 decode_src $1
+
+# clean up alien environment
+
+unset ALIEN_ROOT
+unset ALIEN_VERSION
+unset GLOBUS_LOCATION
+
+AliRemovePaths LD_LIBRARY_PATH libgapiUI.so
+AliRemovePaths PATH alien-token-init alien-perl
+
+export ALIEN_SKIP_GCLIENT_ENV=1
 
 case "$src_proto" in
   "root")
