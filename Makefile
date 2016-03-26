@@ -35,7 +35,7 @@ webmaker.o: webmaker.cxx
 webmaker: AFWebMaker.o webmaker.o
 	$(CXX) -g $^ -o $@
 
-RPMVERSION=1.30
+RPMVERSION=1.31
 
 clean:
 	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM webmaker aafu-webmaker-$(RPMVERSION)*
@@ -47,6 +47,7 @@ archive:
 	tar zcvf aafu-webmaker-$(RPMVERSION).tar.gz aafu-webmaker-$(RPMVERSION)
 	rm -rf aafu-webmaker-$(RPMVERSION)/
 
+# note that the RPM *has to* be built on a Linux machine...
 rpm:	archive
 	dir=$(shell pwd)
 	tar -zvxf aafu-webmaker-$(RPMVERSION).tar.gz
