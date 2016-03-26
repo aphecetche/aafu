@@ -31,7 +31,7 @@ myafDict.cxx: VAF.h AFStatic.h AFDynamic.h myafLinkDef.h
 webmaker.o: webmaker.cxx
 # no root dependency in the flags here
 	$(CXX) -g -Wall -c $< -o $@
-    
+
 webmaker: AFWebMaker.o webmaker.o
 	$(CXX) -g $^ -o $@
 
