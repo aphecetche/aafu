@@ -13,4 +13,5 @@ install:
 	mkdir -p $(DESTDIR)/bin
 	mkdir -p $(DESTDIR)/html
 	install webmaker $(DESTDIR)/bin/webmaker
-	install -m 644 *.css *.js *.html $(DESTDIR)/html
+	install -m 644 *.css *.js $(DESTDIR)/html
+
