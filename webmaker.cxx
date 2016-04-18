@@ -2,12 +2,9 @@
 #include <iostream>
 #include "dirent.h"
 #include <cstring>
-#include <boost/timer/timer.hpp>
 
 int main(int argc, char* argv[])
 {
-  boost::timer::auto_cpu_timer t;
-  
   std::string topdir;
   std::string prefix("/data");
   std::string pattern("nan");

@@ -32,12 +32,10 @@ webmaker.o: webmaker.cxx
 # no root dependency in the flags here
 	$(CXX) -O2 -g -Wall -c $< -o $@
 
-BOOST_DIR += -L/usr/local/Cellar/boost/1.60.0_1/lib 
-
 webmaker: AFWebMaker.o webmaker.o
-	$(CXX) -g  -lboost_timer $^ -o $@
+	$(CXX) -g  $^ -o $@
 
-RPMVERSION=1.31
+RPMVERSION=1.32
 
 clean:
 	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM webmaker aafu-webmaker-$(RPMVERSION)*
