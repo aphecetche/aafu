@@ -45,7 +45,6 @@ public:
   
   void GenerateReports();
   
-  static void GenerateUserManual(const std::string& mdfile);
   static void SetGlobalDebugLevel(int level) { fgDebugLevel = level; }
   
 private:

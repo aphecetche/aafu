@@ -730,7 +730,14 @@ void AFWebMaker::GenerateReports()
   {
     return;
   }
+  else {
 
+    int n = list.size();
+    std::cout << n << " lines" << std::endl;
+  }
+
+  GroupMap();
+  
   GenerateTreeMap();
 
   GenerateDatasetList();
@@ -749,7 +756,7 @@ void AFWebMaker::GenerateReports()
 
   html += "<nav class=\"mainmenu\">\n";
 
-  html += "<a href=\"usermanual.html\">User manual</a>\n";
+  html += "<a href=\"http://aphecetche.github.io/saf3-usermanual/\">User manual</a>\n";
 
   html += "<a href=\"";
   html += FileNamePieCharts();
@@ -967,51 +974,6 @@ void AFWebMaker::GenerateTreeMap()
 
   std::ofstream out(FileNameTreeMap().c_str());
   out << html.c_str();
-  out.close();
-}
-
-//_________________________________________________________________________________________________
-void AFWebMaker::GenerateUserManual(const std::string& mdfile)
-{
-  GDEBUG(2) << "GenerateUserManual" << std::endl;
-
-  if ( system("which pandoc") )
-  {
-    std::cout << "Cannot convert .md to .html as you do not seem to have pandoc installed"
-    << std::endl;
-    return;
-  }
-
-  std::string tmpFile("fragment.html");
-
-  std::string cmd("pandoc ");
-
-  cmd += mdfile;
-  cmd += " -o ";
-  cmd += tmpFile;
-
-  if (system(cmd.c_str())) return;
-
-  std::ifstream in(tmpFile.c_str());
-
-  std::string html;
-
-  std::stringstream buffer;
-  buffer << in.rdbuf();
-
-  std::string css = CSS();
-  std::string js = JSTOC();
-
-  html += HTMLHeader("User Manual",css,js);
-
-  html += "<div id=\"toc\"></div>\n";
-
-  html += buffer.str();
-
-  html += HTMLFooter(true);
-
-  std::ofstream out("usermanual.html");
-  out << html << std::endl;
   out.close();
 }
 

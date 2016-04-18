@@ -2,19 +2,21 @@
 #include <iostream>
 #include "dirent.h"
 #include <cstring>
+#include <boost/timer/timer.hpp>
 
 int main(int argc, char* argv[])
 {
+  boost::timer::auto_cpu_timer t;
+  
   std::string topdir;
   std::string prefix("/data");
   std::string pattern("nan");
-  std::string mdfile;
   int debug(0);
-  
+
   if ( argc == 1 )
   {
     std::cout << "Usage : webmaker --directory [where to find the files] --pattern [starting part of the filenames to look for] --prefix [prefix to strip from the fullpath of the results of the find command] (--debug) (--debug) (--debug) (--debug)" << std::endl;
-    
+
   }
   for ( int i = 1; i < argc; ++i)
   {
@@ -40,30 +42,17 @@ int main(int argc, char* argv[])
     {
       debug++;
     }
-
-    else if ( !strcmp(argv[i],"--mdfile") )
-    {
-      mdfile = argv[i+1];
-      ++i;
-    }
-    
     else {
       std::cerr << "Unknown option " << argv[i] << std::endl;
     }
   }
 
-  if ( mdfile.size() > 0 )
-  {
-    AFWebMaker::SetGlobalDebugLevel(debug);
-    AFWebMaker::GenerateUserManual(mdfile);
-  }
-  
   if ( topdir.length() == 0 )
   {
     std::cerr << "No top directory given. Exiting now." << std::endl;
     return -2;
   }
-  
+
   DIR* dirp = opendir(topdir.c_str());
   if (!dirp)
   {
@@ -72,8 +61,8 @@ int main(int argc, char* argv[])
   }
 
   AFWebMaker wm(topdir,pattern,prefix,debug);
-  
+
   wm.GenerateReports();
-  
+
   return 0;
 }
