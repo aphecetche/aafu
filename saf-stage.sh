@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 #  saf-stage.sh $src $dest
 #
