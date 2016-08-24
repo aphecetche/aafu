@@ -239,7 +239,7 @@ fi
 # fine, the version exists, let's get the Root dependency and the env. correct
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-  source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+  eval `alienv printenv VO_ALICE@AliPhysics::${aliphysics}`
 
   assert_alien_token 1
 
@@ -249,9 +249,9 @@ fi
 
 # here be sure to redefine the LD_LIBRARY_PATH and PATH...
 
-  source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+  eval `alienv printenv VO_ALICE@AliPhysics::${aliphysics}`
 
-  echo "after source alienv again..."
+  echo "after eval alienv printenv again..."
   echo "PATH=$PATH"
   echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
@@ -303,7 +303,7 @@ function rootfile_transfer_with_filter()
 # fine, the version exists, let's get the Root dependency and the env. correct
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-  source alienv setenv VO_ALICE@AliPhysics::${aliphysics}
+  eval `alienv printenv VO_ALICE@AliPhysics::${aliphysics}`
 
   assert_alien_token 1
 
@@ -351,7 +351,7 @@ function rootfile_transfer()
   fi
 
   source /cvmfs/alice.cern.ch/etc/login.sh
-  source alienv setenv VO_ALICE@AliRoot::${DEFAULTALIROOT}
+  eval `alienv printenv VO_ALICE@AliRoot::${DEFAULTALIROOT}`
 
   assert_alien_token 1
 
