@@ -36,6 +36,7 @@
 #include "TMath.h"
 #include "TRandom3.h"
 #include "TKey.h"
+#include <memory>
 
 namespace
 {
@@ -1883,4 +1884,54 @@ void VAF::RootFileSize(const char* filename, Bool_t showBranches)
     
     delete file;
   }
+
+
+//_______________________________________________________________________
+void VAF::GetFilesFromServer(const char* file, const char* server, TFileCollection& fileList)
+{
+    std::unique_ptr<TFile> f(TFile::Open(file));
+
+    std::unique_ptr<TFileCollection> fc(static_cast<TFileCollection*>(f->Get("dataset")));
+
+    
+    std::unique_ptr<TFileCollection> fonserver(static_cast<TFileCollection*>(fc->GetFilesOnServer(server)));
+
+    if (fonserver)
+    {
+        TFileInfo* fi;
+        TIter next(fonserver->GetList());
+
+        while ( ( fi = static_cast<TFileInfo*>(next())))
+        {
+            fileList.Add(new TFileInfo(Form("alien://%s",fi->GetFirstUrl()->GetFile())));
+        }
+    }
+}
+
+//_______________________________________________________________________
+void VAF::ExtractFileList(const char* datasetDir, const char* serverName) 
+{
+  // Loop over all the *.root files in datasetDir and extract the list
+  // of files belonging to the given server
+  void* dirp = gSystem->OpenDirectory(gSystem->ExpandPathName(datasetDir));
+  TFileCollection fileList;
+  const char* name;
+  int n(10);
+
+  while ( ( name = gSystem->GetDirEntry(dirp)) && n>0 ) {
+      TString sname(name);
+
+      if (sname.EndsWith(".root")) {
+        std::cout << name << std::endl;
+        GetFilesFromServer(Form("%s/%s",gSystem->ExpandPathName(datasetDir),name),serverName,fileList);
+      }
+//      --n;
+  }
+
+  TFile* f = TFile::Open("recuperate.root","recreate");
+  fileList.Update();
+  fileList.Print("f");
+  fileList.Write("dataset");
+  delete f;
+}
 

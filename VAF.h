@@ -170,7 +170,10 @@ public:
   static void GetBranchSizes(TTree* tree, Long64_t& zipBytes, Long64_t& totBytes, TObjArray* lines);
 
   static void PrintB(const TObjArray& lines);
-  
+
+  static void ExtractFileList(const char* datasetDir, const char* serverName);
+  static void GetFilesFromServer(const char* file, const char* server, TFileCollection& fileList);
+
 private:
   void UpdateConnectString();
   
