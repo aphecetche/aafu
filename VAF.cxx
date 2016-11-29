@@ -269,7 +269,7 @@ void VAF::CopyFromRemote(const char* txtfile)
     {
       std::cout << "TFile::Cp(" << line << "," << file.Data() << ")" << std::endl;
   	  TFile::Cp(line,file.Data());
-      if ( TString(line).EndsWith(".zip") )
+      if ( TString(line).Remove(TString::kTrailing,' ').EndsWith("zip") )
       {
         gSystem->Exec(Form("unzip %s -d %s",file.Data(),gSystem->DirName(file.Data())));
         gSystem->Exec(Form("rm %s",file.Data()));
