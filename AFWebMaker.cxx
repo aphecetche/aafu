@@ -756,7 +756,7 @@ void AFWebMaker::GenerateReports()
 
   html += "<nav class=\"mainmenu\">\n";
 
-  html += "<a href=\"http://aphecetche.github.io/saf3-usermanual/\">User manual</a>\n";
+  html += "<a href=\"https://www.aphecetche.xyz/saf3-usermanual/\">User manual</a>\n";
 
   html += "<a href=\"";
   html += FileNamePieCharts();
