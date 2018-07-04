@@ -25,7 +25,7 @@ namespace
   Double_t byte2GB(1024*1024*1024);
 }
 
-
+using namespace std;
 
 //______________________________________________________________________________
 void MakeRawCollection(const char* runlist, const char* collectionName, const char* collectionScript)

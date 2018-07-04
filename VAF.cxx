@@ -44,6 +44,7 @@ namespace
   Double_t byte2MB(1024*1024);
   
 }
+using namespace std;
 
 //______________________________________________________________________________
 VAF::VAF(const char* master) : fConnect(""), fDryRun(kTRUE), fMergedOnly(kTRUE),

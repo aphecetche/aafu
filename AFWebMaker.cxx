@@ -20,6 +20,7 @@ int AFWebMaker::fgDebugLevel = 0;
 #define DEBUG(level) if ( fDebugLevel > level ) std::cout <<  "DEBUG " << __FILE__ << ":" << __LINE__ << " "
 
 #define GDEBUG(level) if ( AFWebMaker::fgDebugLevel > level ) std::cout <<  "GDEBUG " << __FILE__ << ":" << __LINE__ << " "
+using namespace std;
 
 namespace {
 
@@ -40,6 +41,7 @@ namespace {
       }
     }
   }
+
 
   void AddList(const AFWebMaker::AFFileInfoList& src, AFWebMaker::AFFileInfoList& dest)
   {

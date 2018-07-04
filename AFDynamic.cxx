@@ -57,6 +57,8 @@ namespace
 
 }
 
+using namespace std;
+
 //______________________________________________________________________________
 AFDynamic::AFDynamic(const char* master) : VAF(master)
 {
