@@ -10,3 +10,12 @@ myafDict*
 .settings
 webmaker
 .history
+*.list.dir
+tmp.*
+.root_hist
+repopulate/copymacro.C
+repopulate/*.list*
+repopulate/*.err
+repopulate/*.out
+repopulate/*.log
+

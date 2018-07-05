@@ -1,6 +1,6 @@
 universe=vanilla
 
-executable=$ENV(HOME)/aafu/repopulate/copy.sh
+executable=$ENV(HOME)/aafu/repopulate/copy-files.sh
 
 # Don't send annoying email notifications
 Notification = Never
@@ -15,7 +15,5 @@ should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
 rank = -SlotID
-
-Input = $ENV(HOME)/.PoD/user_worker_env.sh
 
 include : $ENV(HOME)/aafu/repopulate/list-input.sh |
