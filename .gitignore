@@ -18,4 +18,6 @@ repopulate/*.list*
 repopulate/*.err
 repopulate/*.out
 repopulate/*.log
+*.rpm
+
 
