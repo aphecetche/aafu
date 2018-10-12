@@ -19,5 +19,5 @@ repopulate/*.err
 repopulate/*.out
 repopulate/*.log
 *.rpm
-
+aafu-copy-from-remote
 

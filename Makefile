@@ -1,10 +1,10 @@
 include $(ROOTSYS)/etc/Makefile.arch
 
-all: myaf webmaker
+all: myaf webmaker aafu-copy-from-remote
 
 CXX := $(shell root-config --cxx)
 
-CXXFLAGS += -g -Wall $(shell root-config --cflags) -O2
+CXXFLAGS += -g -Wall $(shell root-config --cflags) -O2 -I${BOOST_ROOT}/include 
 
 LIBS := $(shell root-config --libs) -lProof
 
@@ -28,6 +28,9 @@ myafDict.cxx: VAF.h AFStatic.h AFDynamic.h myafLinkDef.h
 %.o: %.cxx %.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+%.o: %.cxx
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 webmaker.o: webmaker.cxx
 # no root dependency in the flags here
 	$(CXX) -O2 -g -Wall -c $< -o $@
@@ -35,10 +38,13 @@ webmaker.o: webmaker.cxx
 webmaker: AFWebMaker.o webmaker.o
 	$(CXX) -g  $^ -o $@
 
+aafu-copy-from-remote: CopyFromRemote.o aafu-copy-from-remote.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
+
 RPMVERSION=1.33
 
 clean:
-	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM webmaker aafu-webmaker-$(RPMVERSION)*
+	rm -rf *.d *.so *.o *Dict.* myaf *.dSYM webmaker aafu-webmaker-$(RPMVERSION)* aafu-copy-from-remote
 
 archive:
 	mkdir aafu-webmaker-$(RPMVERSION)
